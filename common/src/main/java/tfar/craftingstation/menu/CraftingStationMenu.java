@@ -25,8 +25,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import tfar.craftingstation.util.SideContainerWrapper;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
@@ -226,7 +224,6 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         return true;
     }
 
-    @Nonnull
     @Override
     public ItemStack quickMoveStack(Player playerIn, int index) {
 
@@ -343,7 +340,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             Player pPlayer,
             CraftingContainer pCraftSlots,
             ResultContainer pResultSlots,
-            @Nullable RecipeHolder<CraftingRecipe> pRecipe
+            RecipeHolder<CraftingRecipe> pRecipe
     ) {
         if (!pLevel.isClientSide) {
             CraftingInput craftinginput = pCraftSlots.asCraftInput();
@@ -373,8 +370,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         return this.tileEntity == otherContainer.tileEntity;
     }
 
-    @Nonnull
-    protected ItemStack notifySlotAfterTransfer(Player player, @Nonnull ItemStack stack, @Nonnull ItemStack original, Slot slot) {
+    protected ItemStack notifySlotAfterTransfer(Player player, ItemStack stack, ItemStack original, Slot slot) {
         // notify slot
         slot.onQuickCraft(stack, original);
 
@@ -394,25 +390,25 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     //return true if anything happened
-    protected boolean moveToSideInventory(@Nonnull ItemStack itemstack) {
+    protected boolean moveToSideInventory(ItemStack itemstack) {
         return hasSideContainers() && this.mergeItemStackMove(itemstack, 10, 10 + subContainerSize());
     }
 
-    protected boolean moveToPlayerInventory(@Nonnull ItemStack itemstack) {
+    protected boolean moveToPlayerInventory(ItemStack itemstack) {
         return this.moveItemStackTo(itemstack, 10 + subContainerSize(), this.slots.size(), false);
     }
 
-    protected boolean refillSideInventory(@Nonnull ItemStack itemStack) {
+    protected boolean refillSideInventory(ItemStack itemStack) {
         return this.mergeItemStackRefill(itemStack, 10, 10 + subContainerSize());
     }
 
-    protected boolean moveToCraftingStation(@Nonnull ItemStack itemstack) {
+    protected boolean moveToCraftingStation(ItemStack itemstack) {
         return this.moveItemStackTo(itemstack, 1, 10, false);
     }
 
     // Fix for a vanilla bug: doesn't take Slot.getMaxStackSize into account
     @Override
-    protected boolean moveItemStackTo(@Nonnull ItemStack stack, int startIndex, int endIndex, boolean useEndIndex) {
+    protected boolean moveItemStackTo(ItemStack stack, int startIndex, int endIndex, boolean useEndIndex) {
         boolean didSomething = mergeItemStackRefill(stack, startIndex, endIndex);
         if (!stack.isEmpty()) didSomething |= mergeItemStackMove(stack, startIndex, endIndex);
         return didSomething;
@@ -420,7 +416,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
     // only refills items that are already present
     //return true if successful
-    protected boolean mergeItemStackRefill(@Nonnull ItemStack stack, int startIndex, int endIndex) {
+    protected boolean mergeItemStackRefill(ItemStack stack, int startIndex, int endIndex) {
         if (stack.isEmpty()) return false;
 
         boolean didSomething = false;
@@ -459,7 +455,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     // only moves items into empty slots
-    protected boolean mergeItemStackMove(@Nonnull ItemStack stack, int startIndex, int endIndex) {
+    protected boolean mergeItemStackMove(ItemStack stack, int startIndex, int endIndex) {
         if (stack.isEmpty()) return false;
 
         boolean didSomething = false;

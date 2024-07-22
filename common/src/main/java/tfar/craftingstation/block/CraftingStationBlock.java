@@ -25,8 +25,6 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import tfar.craftingstation.blockentity.CraftingStationBlockEntity;
 import tfar.craftingstation.platform.Services;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class CraftingStationBlock extends Block implements SimpleWaterloggedBlock, EntityBlock {
 
@@ -71,7 +69,7 @@ public class CraftingStationBlock extends Block implements SimpleWaterloggedBloc
   }
 
   @Override
-  public void onRemove(BlockState state, @Nonnull Level worldIn, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean isMoving) {
+  public void onRemove(BlockState state,Level worldIn,BlockPos pos, BlockState newState, boolean isMoving) {
     if (state.getBlock() != newState.getBlock()) {
       BlockEntity tileentity = worldIn.getBlockEntity(pos);
       if (tileentity instanceof CraftingStationBlockEntity craftingStationBlock) {
@@ -97,12 +95,10 @@ public class CraftingStationBlock extends Block implements SimpleWaterloggedBloc
     return shape;
   }
 
-  @Nonnull
   public BlockState rotate(BlockState state, Rotation rotation) {
     return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
   }
 
-  @Nonnull
   public BlockState mirror(BlockState state, Mirror mirror) {
     return state.rotate(mirror.getRotation(state.getValue(FACING)));
   }
@@ -111,12 +107,10 @@ public class CraftingStationBlock extends Block implements SimpleWaterloggedBloc
     p_206840_1_.add(WATERLOGGED,FACING);
   }
 
-  @Nonnull
   public FluidState getFluidState(BlockState p_204507_1_) {
     return p_204507_1_.getValue(WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(p_204507_1_);
   }
 
-  @Nullable
   public BlockState getStateForPlacement(BlockPlaceContext ctx) {
     LevelAccessor level = ctx.getLevel();
     BlockPos pos = ctx.getClickedPos();
@@ -126,6 +120,6 @@ public class CraftingStationBlock extends Block implements SimpleWaterloggedBloc
 
   @Override
   public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-    return new CraftingStationBlockEntity(pPos,pState);
+    return Services.PLATFORM.create(pPos,pState);
   }
 }

@@ -4,13 +4,9 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.inventory.CraftingContainer;
-import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.NonNullList;
-
-import javax.annotation.Nonnull;
-import java.util.stream.IntStream;
 
 public class PersistantCraftingContainer implements CraftingContainer {
 
@@ -37,7 +33,6 @@ public class PersistantCraftingContainer implements CraftingContainer {
   /**
    * Returns the stack in this slot.  This stack should be a modifiable reference, not a copy of a stack in your inventory.
    */
-  @Nonnull
   @Override
   public ItemStack getItem(int slot) {
     validate(slot);
@@ -57,7 +52,6 @@ public class PersistantCraftingContainer implements CraftingContainer {
   /**
    * Attempts to remove n items from the specified slot.  Returns the split stack that was removed.  Modifies the inventory.
    */
-  @Nonnull
   @Override
   public ItemStack removeItem(int slot, int count) {
     validate(slot);
@@ -71,7 +65,7 @@ public class PersistantCraftingContainer implements CraftingContainer {
    * Sets the contents of this slot to the provided stack.
    */
   @Override
-  public void setItem(int slot,@Nonnull ItemStack stack) {
+  public void setItem(int slot,ItemStack stack) {
     validate(slot);
     inv.setItem(slot, stack);
     onCraftMatrixChanged();
@@ -80,7 +74,6 @@ public class PersistantCraftingContainer implements CraftingContainer {
   /**
    * Removes the stack contained in this slot from the underlying handler, and returns it.
    */
-  @Nonnull
   @Override
   public ItemStack removeItemNoUpdate(int index) {
     validate(index);

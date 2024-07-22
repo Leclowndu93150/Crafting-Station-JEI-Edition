@@ -3,7 +3,6 @@ package tfar.craftingstation.block;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Player;
@@ -14,11 +13,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
+import org.jetbrains.annotations.Nullable;
 import tfar.craftingstation.blockentity.CraftingStationBlockEntity;
 import tfar.craftingstation.platform.Services;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class CraftingStationSlabBlock extends SlabBlock implements EntityBlock {
 
@@ -46,14 +43,14 @@ public class CraftingStationSlabBlock extends SlabBlock implements EntityBlock {
     return te instanceof CraftingStationBlockEntity ? (MenuProvider) te : null;
   }
 
-  @org.jetbrains.annotations.Nullable
+  @Nullable
   @Override
   public BlockEntity newBlockEntity(BlockPos pPos, BlockState pState) {
-    return new CraftingStationBlockEntity(pPos,pState);
+    return Services.PLATFORM.create(pPos,pState);
   }
 
   @Override
-  public void onRemove(BlockState state, @Nonnull Level worldIn, @Nonnull BlockPos pos, @Nonnull BlockState newState, boolean isMoving) {
+  public void onRemove(BlockState state,Level worldIn,BlockPos pos,BlockState newState, boolean isMoving) {
     if (state.getBlock() != newState.getBlock()) {
       BlockEntity tileentity = worldIn.getBlockEntity(pos);
       if (tileentity instanceof CraftingStationBlockEntity craftingStationBlock) {
@@ -64,22 +61,23 @@ public class CraftingStationSlabBlock extends SlabBlock implements EntityBlock {
     }
   }
 
-  @Nonnull
+  @Override
   public BlockState rotate(BlockState p_185499_1_, Rotation p_185499_2_) {
     return p_185499_1_.setValue(CraftingStationBlock.FACING, p_185499_2_.rotate(p_185499_1_.getValue(CraftingStationBlock.FACING)));
   }
 
-  @Nonnull
+  @Override
   public BlockState mirror(BlockState p_185471_1_, Mirror p_185471_2_) {
     return p_185471_1_.rotate(p_185471_2_.getRotation(p_185471_1_.getValue(CraftingStationBlock.FACING)));
   }
 
+  @Override
   protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> p_206840_1_) {
     super.createBlockStateDefinition(p_206840_1_);
     p_206840_1_.add(CraftingStationBlock.FACING);
   }
 
-  @Nullable
+  @Override
   public BlockState getStateForPlacement(BlockPlaceContext p_196258_1_) {
     return super.getStateForPlacement(p_196258_1_).setValue(CraftingStationBlock.FACING, p_196258_1_.getHorizontalDirection());
   }

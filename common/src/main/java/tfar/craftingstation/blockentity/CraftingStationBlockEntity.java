@@ -19,8 +19,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import tfar.craftingstation.menu.CraftingStationMenu;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class CraftingStationBlockEntity extends BlockEntity implements MenuProvider {
 
@@ -90,23 +88,20 @@ public class CraftingStationBlockEntity extends BlockEntity implements MenuProvi
         super.loadAdditional(tag,pRegistries);
     }
 
-    @Nonnull
     @Override
     public Component getDisplayName() {
         return getCustomName() != null ? getCustomName() : Component.translatable("title.crafting_station");
     }
 
-    @Nullable
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory playerInventory, Player player) {
         return new CraftingStationMenu(id, playerInventory, input,worldPosition);
     }
 
-    public void setCustomName(@Nullable Component pName) {
+    public void setCustomName(Component pName) {
         this.customName = pName;
     }
 
-    @Nullable
     public Component getCustomName() {
         return this.customName;
     }
@@ -117,7 +112,6 @@ public class CraftingStationBlockEntity extends BlockEntity implements MenuProvi
         level.sendBlockUpdated(worldPosition,getBlockState(),getBlockState(),3);
     }
 
-    @Nonnull
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider pRegistries) {
         return saveWithoutMetadata(pRegistries);    // okay to send entire inventory on chunk load

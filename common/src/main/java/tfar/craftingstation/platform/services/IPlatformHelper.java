@@ -12,6 +12,8 @@ import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import tfar.craftingstation.blockentity.CraftingStationBlockEntity;
 import tfar.craftingstation.menu.CraftingStationMenu;
 import tfar.craftingstation.network.C2SModPacket;
 import tfar.craftingstation.network.S2CModPacket;
@@ -73,5 +75,9 @@ public interface IPlatformHelper {
     MenuType<CraftingStationMenu> customMenu();
 
     SideContainerWrapper getWrapper(BlockEntity blockEntity);
+
+    default CraftingStationBlockEntity create(BlockPos pos, BlockState state) {
+        return new CraftingStationBlockEntity(pos,state);
+    }
 
 }
