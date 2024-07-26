@@ -216,7 +216,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
     @Override
     public void slotsChanged(Container inventory) {
-        slotChangedCraftingGrid(this,world, player, craftMatrix, craftResult,null);
+        slotChangedCraftingGrid(this, world, player, craftMatrix, craftResult, null);
     }
 
     @Override
@@ -308,7 +308,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             nothingDone &= !moveToSideInventory(stack);
         }
         // Is the slot from the side inventories?
-        else if (index < 10 + subContainerSize()) {
+        else if (index < 10 + Math.min(subContainerSize(),MAX_SLOTS)) {
             // Try moving crafting station -> preferred modules
             nothingDone = !moveToCraftingStation(stack);
 
@@ -316,7 +316,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             nothingDone &= !moveToPlayerInventory(stack);
         }
         // Slot is from the player inventory
-        else if (index >= 10 + subContainerSize()) {
+        else if (index >= 10 + Math.min(subContainerSize(),MAX_SLOTS)) {
             // try moving player -> modules
             nothingDone = !moveToCraftingStation(stack);
 
@@ -344,7 +344,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     ) {
         if (!pLevel.isClientSide) {
             CraftingInput craftinginput = pCraftSlots.asCraftInput();
-            ServerPlayer serverplayer = (ServerPlayer)pPlayer;
+            ServerPlayer serverplayer = (ServerPlayer) pPlayer;
             ItemStack itemstack = ItemStack.EMPTY;
             Optional<RecipeHolder<CraftingRecipe>> optional = pLevel.getServer()
                     .getRecipeManager()
@@ -391,15 +391,15 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
     //return true if anything happened
     protected boolean moveToSideInventory(ItemStack itemstack) {
-        return hasSideContainers() && this.mergeItemStackMove(itemstack, 10, 10 + subContainerSize());
+        return hasSideContainers() && this.mergeItemStackMoveSideContainer(itemstack, 0, subContainerSize());
     }
 
     protected boolean moveToPlayerInventory(ItemStack itemstack) {
-        return this.moveItemStackTo(itemstack, 10 + subContainerSize(), this.slots.size(), false);
+        return this.moveItemStackTo(itemstack, 10 + Math.min(subContainerSize(),MAX_SLOTS), this.slots.size(), false);
     }
 
     protected boolean refillSideInventory(ItemStack itemStack) {
-        return this.mergeItemStackRefill(itemStack, 10, 10 + subContainerSize());
+        return this.mergeItemStackRefillSideContainer(itemStack, 0, subContainerSize());
     }
 
     protected boolean moveToCraftingStation(ItemStack itemstack) {
@@ -486,6 +486,65 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         return didSomething;
     }
 
+    // only moves items into empty slots
+    protected boolean mergeItemStackMoveSideContainer(ItemStack stack, int startIndex, int endIndex) {
+        if (stack.isEmpty()) return false;
+
+        boolean didSomething = false;
+        SideContainerWrapper sideContainerWrapper = getCurrentHandler();
+        ItemStack remainder = stack.copy();
+        for (int k = startIndex; k < endIndex; k++) {
+            ItemStack slotStack = sideContainerWrapper.$getStack(k);
+            if (slotStack.isEmpty() && sideContainerWrapper.$valid(k)){ // Forge: Make sure to respect isItemValid in the slot.
+                remainder = sideContainerWrapper.$insert(k,remainder,false);
+                didSomething = remainder != stack;
+
+                if (remainder.isEmpty()) {
+                    break;
+                }
+            }
+        }
+
+        if (didSomething) {
+            stack.setCount(remainder.getCount());
+        }
+
+        return didSomething;
+    }
+
+    // only refills items that are already present
+    //return true if successful
+    protected boolean mergeItemStackRefillSideContainer(ItemStack stack, int startIndex, int endIndex) {
+        if (stack.isEmpty()) return false;
+
+        SideContainerWrapper sideContainerWrapper = getCurrentHandler();
+
+        boolean didSomething = false;
+
+        ItemStack slotStack;
+
+        if (stack.isStackable()) {
+            ItemStack remainder = stack.copy();
+
+            for (int k = startIndex; k < endIndex; k++) {
+                if (stack.isEmpty()) break;
+                slotStack = sideContainerWrapper.$getStack(k);
+                if (!slotStack.isEmpty() && ItemStack.isSameItemSameComponents(stack, slotStack)) {
+                    remainder = sideContainerWrapper.$insert(k,remainder,false);
+                    didSomething = remainder != stack;
+
+                    if (remainder.isEmpty()) {
+                        break;
+                    }
+                }
+            }
+            if (didSomething) {
+                stack.setCount(remainder.getCount());
+            }
+        }
+        return didSomething;
+    }
+
 
     @Override
     public boolean canTakeItemForPickAll(ItemStack stack, Slot slot) {
@@ -553,18 +612,17 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
 
     public void syncSideContainers() {
-        for (Map.Entry<Direction,BlockEntity> entry : blockEntityMap.entrySet()) {
+        for (Map.Entry<Direction, BlockEntity> entry : blockEntityMap.entrySet()) {
             Direction direction = entry.getKey();
             BlockEntity blockEntity = entry.getValue();
             SideContainerWrapper wrapper = Services.PLATFORM.getWrapper(blockEntity);
             if (wrapper != null) {
-                for (int i = 0; i < wrapper.$getSlotCount();i++) {
-                    Services.PLATFORM.sendToClient(new S2CSideSetSideContainerSlot(wrapper.$getStack(i), direction, i),(ServerPlayer) player);
+                for (int i = 0; i < wrapper.$getSlotCount(); i++) {
+                    Services.PLATFORM.sendToClient(new S2CSideSetSideContainerSlot(wrapper.$getStack(i), direction, i), (ServerPlayer) player);
                 }
             }
         }
     }
-
 
 
     public void synchronizeSlotToRemote(int pSlotIndex, ItemStack pStack, Supplier<ItemStack> pSupplier) {

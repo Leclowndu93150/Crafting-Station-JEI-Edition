@@ -71,4 +71,14 @@ public class SideContainerNeoForge implements IItemHandlerModifiable,SideContain
     public ItemStack $removeStack(int slot, int count) {
         return extractItem(slot,count,false);
     }
+
+    @Override
+    public int $getMaxStackSize(int slot) {
+        return getSlotLimit(slot);
+    }
+
+    @Override
+    public ItemStack $insert(int slot, ItemStack stack, boolean simulate) {
+        return insertItem(slot, stack, simulate);
+    }
 }

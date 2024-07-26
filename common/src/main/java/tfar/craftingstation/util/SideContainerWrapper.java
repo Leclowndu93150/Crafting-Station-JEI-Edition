@@ -10,5 +10,7 @@ public interface SideContainerWrapper {
     default boolean $valid(int slot) {
         return slot >=0 && slot < $getSlotCount();
     }
+    int $getMaxStackSize(int slot);
+    ItemStack $insert(int slot,ItemStack stack,boolean simulate);
 
 }

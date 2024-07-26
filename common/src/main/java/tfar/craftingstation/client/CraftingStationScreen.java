@@ -1,6 +1,6 @@
 package tfar.craftingstation.client;
 
-import net.minecraft.client.gui.components.AbstractScrollWidget;
+import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.core.Direction;
 import tfar.craftingstation.CraftingStation;
@@ -17,8 +17,6 @@ import tfar.craftingstation.network.C2SScrollPacket;
 import tfar.craftingstation.platform.Services;
 
 public class CraftingStationScreen extends AbstractContainerScreen<CraftingStationMenu> {
-    public static final ResourceLocation CRAFTING_TABLE_GUI_TEXTURES = ResourceLocation.parse("textures/gui/container/crafting_table.png");
-
     private static final ResourceLocation SCROLLBAR_BACKGROUND_AND_TAB = ResourceLocation.parse("textures/gui/container/creative_inventory/tab_items.png");
 
     public static final ResourceLocation SECONDARY_GUI_TEXTURE = CraftingStation.id("textures/gui/secondary.png");
@@ -95,7 +93,7 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
     @Override
     protected void renderBg(GuiGraphics stack, float partialTicks, int mouseX, int mouseY) {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        stack.blit(CRAFTING_TABLE_GUI_TEXTURES, leftPos, topPos, 0, 0, imageWidth, imageHeight);
+        stack.blit(CraftingScreen.CRAFTING_TABLE_LOCATION, leftPos, topPos, 0, 0, imageWidth, imageHeight);
         int i = this.leftPos;
 
         int i1 = i - 16;

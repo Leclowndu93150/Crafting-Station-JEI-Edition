@@ -25,4 +25,14 @@ public class Empty implements SideContainerWrapper {
     public ItemStack $removeStack(int slot, int count) {
         return ItemStack.EMPTY;
     }
+
+    @Override
+    public int $getMaxStackSize(int slot) {
+        return 0;
+    }
+
+    @Override
+    public ItemStack $insert(int slot, ItemStack stack, boolean simulate) {
+        return stack;
+    }
 }
