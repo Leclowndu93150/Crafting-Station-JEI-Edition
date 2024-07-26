@@ -104,7 +104,6 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
         int j = (this.height - this.imageHeight) / 2;
         if (this.menu.hasSideContainers()) {
             //draw background
-            //bind(SECONDARY_GUI_TEXTURE);
             stack.blit(SECONDARY_GUI_TEXTURE, i - 130, j, 0, 0, this.imageWidth, this.imageHeight + 18);
 
             int totalSlots = menu.getCurrentHandler().$getSlotCount();
@@ -123,9 +122,7 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
                 stack.blit(SCROLLBAR_BACKGROUND_AND_TAB, i - 17, j + 67, 174, 18, 14, 111);
                 int k = (int) (j + 17 + 145 * currentScroll);
 
-                if (isScrolling && mouseX <= i2 && mouseX >= i1)
-                    stack.blitSprite(CreativeModeInventoryScreen.SCROLLER_SPRITE, i - 16, k, 12, 15);
-                else stack.blitSprite(CreativeModeInventoryScreen.SCROLLER_SPRITE, i - 16, k,  12, 15);
+                stack.blitSprite(CreativeModeInventoryScreen.SCROLLER_SPRITE, i - 16, k, 12, 15);
             }
         }
     }
