@@ -1,5 +1,7 @@
 package tfar.craftingstation.client;
 
+import net.minecraft.client.gui.components.AbstractScrollWidget;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.core.Direction;
 import tfar.craftingstation.CraftingStation;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -16,8 +18,6 @@ import tfar.craftingstation.platform.Services;
 
 public class CraftingStationScreen extends AbstractContainerScreen<CraftingStationMenu> {
     public static final ResourceLocation CRAFTING_TABLE_GUI_TEXTURES = ResourceLocation.parse("textures/gui/container/crafting_table.png");
-
-    public static final ResourceLocation SCROLLBAR_AND_TAB = ResourceLocation.parse("textures/gui/container/creative_inventory/tabs.png");
 
     private static final ResourceLocation SCROLLBAR_BACKGROUND_AND_TAB = ResourceLocation.parse("textures/gui/container/creative_inventory/tab_items.png");
 
@@ -107,7 +107,6 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
             //bind(SECONDARY_GUI_TEXTURE);
             stack.blit(SECONDARY_GUI_TEXTURE, i - 130, j, 0, 0, this.imageWidth, this.imageHeight + 18);
 
-            bind(SCROLLBAR_BACKGROUND_AND_TAB);
             int totalSlots = menu.getCurrentHandler().$getSlotCount();
             int slotsToDraw = Math.min(totalSlots,CraftingStationMenu.MAX_SLOTS);
 
@@ -122,18 +121,13 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
             if (this.hasScrollbar()) {
                 stack.blit(SCROLLBAR_BACKGROUND_AND_TAB, i - 17, j + 16, 174, 17, 14, 100);
                 stack.blit(SCROLLBAR_BACKGROUND_AND_TAB, i - 17, j + 67, 174, 18, 14, 111);
-                bind(SCROLLBAR_AND_TAB);
                 int k = (int) (j + 17 + 145 * currentScroll);
 
                 if (isScrolling && mouseX <= i2 && mouseX >= i1)
-                    stack.blit(SCROLLBAR_AND_TAB, i - 16, k, 244, 0, 12, 15);
-                else stack.blit(SCROLLBAR_AND_TAB, i - 16, k, 244 - 12, 0, 12, 15);
+                    stack.blitSprite(CreativeModeInventoryScreen.SCROLLER_SPRITE, i - 16, k, 12, 15);
+                else stack.blitSprite(CreativeModeInventoryScreen.SCROLLER_SPRITE, i - 16, k,  12, 15);
             }
         }
-    }
-
-    private static void bind(ResourceLocation tex) {
-        RenderSystem.setShaderTexture(0, tex);
     }
 
     @Override

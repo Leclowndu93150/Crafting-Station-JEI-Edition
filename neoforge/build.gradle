@@ -49,6 +49,9 @@ dependencies {
         implementation "me.shedaniel.cloth:cloth-config-neoforge:$cloth_config_version"
         implementation "dev.architectury:architectury-neoforge:$architectury_version"
     }
+
+    implementation "curse.maven:metal-barrels-324985:5554620"
+
 }
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
