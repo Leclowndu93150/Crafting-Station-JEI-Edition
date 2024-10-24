@@ -151,35 +151,32 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     //side inventories (if any) | 10 to (9 + subContainerSize)
     //player inventory | (10 + subContainerSides)
 
-    protected void searchSideInventories() {
-        // detect te
+    public void searchSideInventories() {
+        Direction defaultDirection = null;
+
         for (Direction dir : Direction.values()) {
             BlockPos neighbor = pos.relative(dir);
-
             BlockEntity te = world.getBlockEntity(neighbor);
-            if (te != null && !(te instanceof CraftingStationBlockEntity)) {
-                // if blacklisted, skip checks entirely
-                if (CommonTagUtil.isIn(CraftingStation.blacklisted, te.getType()))
-                    continue;
-                if (te instanceof Container container && !container.stillValid(player)) {
-                    continue;
-                }
 
-                // try internal access first
+            if (te != null && !(te instanceof CraftingStationBlockEntity)) {
+                if (CommonTagUtil.isIn(CraftingStation.blacklisted, te.getType())) continue;
+                if (te instanceof Container container && !container.stillValid(player)) continue;
+
                 if (Services.PLATFORM.hasCapability(te)) {
                     blockEntityMap.put(dir, te);
                     blocks.put(dir, new ItemStack(world.getBlockState(neighbor).getBlock()));
                     containerNames.put(dir, te instanceof MenuProvider menuProvider ? menuProvider.getDisplayName() : te.getBlockState().getBlock().getName());
+
+                    // Default to the first valid container if none is selected yet
+                    if (defaultDirection == null) {
+                        defaultDirection = dir;
+                    }
                 }
-                // try sided access else
-                //      if(te.hasCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, dir.getOpposite())) {
-                //        if(te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, dir.getOpposite()) instanceof IItemHandlerModifiable) {
-                //          inventoryTE = te;
-                //         accessDir = dir.getOpposite();
-                //         break;
-                //       }
-                //   }
             }
+        }
+
+        if (defaultDirection != null) {
+            currentContainer = defaultDirection;
         }
     }
 
