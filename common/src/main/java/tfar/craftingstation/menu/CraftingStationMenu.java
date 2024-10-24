@@ -38,6 +38,8 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     public final ResultContainer craftResult = new ResultContainer();
     public final Level world;
     public final CraftingStationBlockEntity tileEntity;
+    private int sideContainerStartIndex;
+    private int playerInventoryStartIndex;
 
     public Map<Direction, ItemStack> blocks = new EnumMap<>(Direction.class);
     public Map<Direction, BlockEntity> blockEntityMap = new EnumMap<>(Direction.class);
@@ -117,6 +119,10 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     protected void addSideInventorySlots() {
         int rows = 9;
         int cols = 6;
+
+        // Set the start index for the side container slots (typically after the crafting grid)
+        setSideContainerStartIndex(10); // Assuming side containers start at slot index 10
+
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
                 int index = col + cols * row;
@@ -190,15 +196,17 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         }
     }
 
-    private void addPlayerSlots(Inventory playerInventory) {
-        // inventory
+    protected void addPlayerSlots(Inventory playerInventory) {
+        setPlayerInventoryStartIndex(getSideContainerStartIndex(Direction.NORTH) + subContainerSize());
+
+        // Player Inventory (3 rows of 9 slots)
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 9; x++) {
                 addSlot(new Slot(playerInventory, 9 + x + 9 * y, 8 + 18 * x, 84 + 18 * y));
             }
         }
 
-        // hotbar
+        // Player Hotbar (1 row of 9 slots)
         for (int x = 0; x < 9; x++) {
             addSlot(new Slot(playerInventory, x, 8 + 18 * x, 142));
         }
@@ -638,4 +646,31 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             }
         }
     }
+
+    // Getter for side container start index, considering direction
+    public int getSideContainerStartIndex(Direction direction) {
+        if (blockEntityMap.containsKey(direction)) {
+            // Compute the start index based on the direction
+            // This is just an example; adjust the index logic as necessary
+            return this.sideContainerStartIndex;
+        } else {
+            return 0;  // Return a default value if no side container in the given direction
+        }
+    }
+
+    // Setter for side container start index
+    public void setSideContainerStartIndex(int startIndex) {
+        this.sideContainerStartIndex = startIndex;
+    }
+
+    // Getter for player inventory start index
+    public int getPlayerInventoryStartIndex() {
+        return this.playerInventoryStartIndex;
+    }
+
+    // Setter for player inventory start index
+    public void setPlayerInventoryStartIndex(int startIndex) {
+        this.playerInventoryStartIndex = startIndex;
+    }
+
 }

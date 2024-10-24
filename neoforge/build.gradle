@@ -44,11 +44,9 @@ neoForge {
 }
 
 dependencies {
-    if (project.use_rei) {
-        implementation "me.shedaniel:RoughlyEnoughItems-neoforge:$rei_version"
-        implementation "me.shedaniel.cloth:cloth-config-neoforge:$cloth_config_version"
-        implementation "dev.architectury:architectury-neoforge:$architectury_version"
-    }
+
+    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}")
+    runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 
     implementation "curse.maven:metal-barrels-324985:5554620"
 
