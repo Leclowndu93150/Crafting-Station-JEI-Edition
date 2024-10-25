@@ -167,8 +167,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
                     blocks.put(dir, new ItemStack(world.getBlockState(neighbor).getBlock()));
                     containerNames.put(dir, te instanceof MenuProvider menuProvider ? menuProvider.getDisplayName() : te.getBlockState().getBlock().getName());
 
-                    // Default to the first valid container if none is selected yet
-                    if (defaultDirection == null) {
+                    if (defaultDirection == null && currentContainer == Direction.DOWN) {
                         defaultDirection = dir;
                     }
                 }
