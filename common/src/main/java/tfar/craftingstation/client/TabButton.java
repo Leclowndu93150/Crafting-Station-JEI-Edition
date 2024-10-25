@@ -29,10 +29,10 @@ public class TabButton extends Button{
       RenderSystem.enableBlend();
       RenderSystem.defaultBlendFunc();
       RenderSystem.enableDepthTest();
-      if (true) {
-        matrices.blit(TAB,getX(), getY(), 0, height, width, height,width,height * 2);
+      if (craftingStationMenu.getSelectedContainer() == this.direction) {
+          matrices.blit(TAB,getX(), getY(), 0, height, width, height,width,height * 2);
       } else {
-        matrices.blit(TAB, getX(), getY(), 0, 0, width, height,width,height * 2);
+          matrices.blit(TAB, getX(), getY(), 0, 0, width, height,width,height * 2);
       }
       ItemStack stack = craftingStationMenu.blocks.getOrDefault(direction,ItemStack.EMPTY);
       if (!stack.isEmpty()) {
