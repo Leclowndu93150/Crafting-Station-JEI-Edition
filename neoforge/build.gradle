@@ -47,7 +47,8 @@ dependencies {
 
     compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}")
     runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
-
+    runtimeOnly "curse.maven:sophisticated-core-618298:5869813"
+    runtimeOnly "curse.maven:sophisticated-storage-619320:5871955"
     implementation "curse.maven:metal-barrels-324985:5554620"
 
 }

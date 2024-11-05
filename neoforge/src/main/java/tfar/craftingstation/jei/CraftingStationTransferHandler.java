@@ -45,11 +45,13 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
     @Override
     public @NotNull List<Slot> getRecipeSlots(@NotNull CraftingStationMenu container, RecipeHolder<CraftingRecipe> recipe) {
         List<Slot> slots = new ArrayList<>();
-        // Add the 3x3 crafting grid slots (slots 1-9)
-        for (int i = 1; i <= 9; i++) {
+
+        int craftingGridSize = 9;
+        for (int i = 1; i <= craftingGridSize; i++) {
             Slot slot = container.getSlot(i);
             slots.add(slot);
         }
+
         return slots;
     }
 
@@ -58,19 +60,23 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
         List<Slot> slots = new ArrayList<>();
         Minecraft mc = Minecraft.getInstance();
 
-        // Loop through the block entities in the blockEntityMap to get side container slots
+        // Dynamically add slots from all connected side containers
         for (Map.Entry<Direction, BlockEntity> entry : container.blockEntityMap.entrySet()) {
             SideContainerWrapper sideContainerWrapper = Services.PLATFORM.getWrapper(entry.getValue());
+            int sideSlotCount = sideContainerWrapper.$getSlotCount();
 
-            // Loop through each slot in the side container and add it to the list
-            for (int i = 0; i < sideContainerWrapper.$getSlotCount(); i++) {
+            for (int i = 0; i < sideSlotCount; i++) {
                 int adjustedSlotIndex = i + container.getSideContainerStartIndex(entry.getKey());
-                slots.add(container.getSlot(adjustedSlotIndex));
+
+                if (adjustedSlotIndex < container.slots.size()) { // Check to prevent out-of-bounds
+                    slots.add(container.getSlot(adjustedSlotIndex));
+                }
             }
         }
 
-        // Add player inventory slots after side containers (typically slots 10+)
-        for (int i = container.getPlayerInventoryStartIndex(); i < container.slots.size(); i++) {
+        // Add player inventory slots after side containers
+        int playerInventoryStart = container.getPlayerInventoryStartIndex();
+        for (int i = playerInventoryStart; i < container.slots.size(); i++) {
             Slot slot = container.getSlot(i);
             assert mc.player != null;
             if (slot.allowModification(mc.player)) {

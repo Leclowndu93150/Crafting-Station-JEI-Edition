@@ -458,9 +458,12 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         return didSomething;
     }
 
-    // only moves items into empty slots
     protected boolean mergeItemStackMove(ItemStack stack, int startIndex, int endIndex) {
         if (stack.isEmpty()) return false;
+
+        // Ensure the indices are within bounds
+        startIndex = Math.max(0, startIndex);
+        endIndex = Math.min(this.slots.size(), endIndex);
 
         boolean didSomething = false;
 
@@ -468,8 +471,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             Slot targetSlot = this.slots.get(k);
             ItemStack slotStack = targetSlot.getItem();
 
-            if (slotStack.isEmpty() && targetSlot.mayPlace(stack) && this.canTakeItemForPickAll(stack, targetSlot)) // Forge: Make sure to respect isItemValid in the slot.
-            {
+            if (slotStack.isEmpty() && targetSlot.mayPlace(stack) && this.canTakeItemForPickAll(stack, targetSlot)) {
                 int limit = targetSlot.getMaxStackSize(stack);
                 ItemStack stack2 = stack.copy();
                 if (stack2.getCount() > limit) {
