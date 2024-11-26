@@ -39,7 +39,7 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
 
     @Override
     public boolean canHandle(@NotNull CraftingStationMenu container, RecipeHolder<CraftingRecipe> recipe) {
-        return true; // Customize condition based on specific needs
+        return true;
     }
 
     @Override
@@ -68,7 +68,8 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
             for (int i = 0; i < sideSlotCount; i++) {
                 int adjustedSlotIndex = i + container.getSideContainerStartIndex(entry.getKey());
 
-                if (adjustedSlotIndex < container.slots.size()) { // Check to prevent out-of-bounds
+                // Exclude crafting grid slots (1 to 9)
+                if (adjustedSlotIndex < container.slots.size() && (adjustedSlotIndex < 1 || adjustedSlotIndex > 9)) {
                     slots.add(container.getSlot(adjustedSlotIndex));
                 }
             }
@@ -77,10 +78,13 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
         // Add player inventory slots after side containers
         int playerInventoryStart = container.getPlayerInventoryStartIndex();
         for (int i = playerInventoryStart; i < container.slots.size(); i++) {
-            Slot slot = container.getSlot(i);
-            assert mc.player != null;
-            if (slot.allowModification(mc.player)) {
-                slots.add(slot);
+            // Exclude crafting grid slots (1 to 9)
+            if (i < 1 || i > 9) {
+                Slot slot = container.getSlot(i);
+                assert mc.player != null;
+                if (slot.allowModification(mc.player)) {
+                    slots.add(slot);
+                }
             }
         }
 
