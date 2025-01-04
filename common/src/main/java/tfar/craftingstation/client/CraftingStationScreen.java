@@ -21,6 +21,10 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
 
     public static final ResourceLocation SECONDARY_GUI_TEXTURE = CraftingStation.id("textures/gui/secondary.png");
 
+    private static final int VISIBLE_ROWS = 9;
+    private static final int SLOTS_PER_ROW = 6;
+    public static final int VISIBLE_SLOTS = VISIBLE_ROWS * SLOTS_PER_ROW;
+
     /**
      * Amount scrolled in inventory (0 = top, 1 = bottom)
      */
@@ -105,7 +109,7 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
             stack.blit(SECONDARY_GUI_TEXTURE, i - 130, j, 0, 0, this.imageWidth, this.imageHeight + 18);
 
             int totalSlots = menu.getCurrentHandler().$getSlotCount();
-            int slotsToDraw = Math.min(totalSlots,CraftingStationMenu.MAX_SLOTS);
+            int slotsToDraw = Math.min(totalSlots, VISIBLE_SLOTS);
 
             int offset = hasScrollbar() ? -126 : -118;
 
@@ -173,20 +177,21 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
 
 
     private void scrollDrag(double scroll) {
-        int firstSlot = (int) (scroll * (menu.subContainerSize() - CraftingStationMenu.MAX_SLOTS));//30 -> 81
+        int firstSlot = (int) (scroll * (menu.subContainerSize() - VISIBLE_SLOTS));
         menu.setFirstSlot(firstSlot);
         Services.PLATFORM.sendToServer(new C2SScrollPacket(firstSlot));
     }
 
     private void scrollMouse(double scrollDelta) {
-        int firstSlot = (int) Mth.clamp(menu.getFirstSlot() - scrollDelta * 6,0,menu.subContainerSize() -CraftingStationMenu.MAX_SLOTS);//30 -> 81
+        int firstSlot = (int) Mth.clamp(menu.getFirstSlot() - scrollDelta * SLOTS_PER_ROW, 0,
+                menu.subContainerSize() - VISIBLE_SLOTS);
         menu.setFirstSlot(firstSlot);
         setScrollPos();
         Services.PLATFORM.sendToServer(new C2SScrollPacket(firstSlot));
     }
 
     void setScrollPos() {
-        double scroll = ((double)menu.getFirstSlot()) /(menu.subContainerSize() - CraftingStationMenu.MAX_SLOTS);
+        double scroll = ((double)menu.getFirstSlot()) / (menu.subContainerSize() - VISIBLE_SLOTS);
         currentScroll = Mth.clamp(scroll,0,1);
     }
 }

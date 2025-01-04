@@ -10,17 +10,20 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import tfar.craftingstation.menu.CraftingStationMenu;
+import tfar.craftingstation.menu.CraftingStationMenu.SideContainerSlot;
 import tfar.craftingstation.platform.Services;
 import tfar.craftingstation.util.SideContainerWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class CraftingStationTransferHandler implements IRecipeTransferInfo<CraftingStationMenu, RecipeHolder<CraftingRecipe>> {
+    private static final Logger LOGGER = LogManager.getLogger("CraftingStation/TransferHandler");
 
     @Override
     public Class<? extends CraftingStationMenu> getContainerClass() {
@@ -45,13 +48,9 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
     @Override
     public @NotNull List<Slot> getRecipeSlots(@NotNull CraftingStationMenu container, RecipeHolder<CraftingRecipe> recipe) {
         List<Slot> slots = new ArrayList<>();
-
-        int craftingGridSize = 9;
-        for (int i = 1; i <= craftingGridSize; i++) {
-            Slot slot = container.getSlot(i);
-            slots.add(slot);
+        for (int i = 1; i <= 9; i++) {
+            slots.add(container.getSlot(i));
         }
-
         return slots;
     }
 
@@ -60,31 +59,32 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
         List<Slot> slots = new ArrayList<>();
         Minecraft mc = Minecraft.getInstance();
 
-        // Dynamically add slots from all connected side containers
-        for (Map.Entry<Direction, BlockEntity> entry : container.blockEntityMap.entrySet()) {
-            SideContainerWrapper sideContainerWrapper = Services.PLATFORM.getWrapper(entry.getValue());
-            int sideSlotCount = sideContainerWrapper.$getSlotCount();
+        Direction currentDir = container.getSelectedContainer();
+        BlockEntity currentBE = container.blockEntityMap.get(currentDir);
 
-            for (int i = 0; i < sideSlotCount; i++) {
-                int adjustedSlotIndex = i + container.getSideContainerStartIndex(entry.getKey());
+        if (currentBE != null) {
+            SideContainerWrapper wrapper = Services.PLATFORM.getWrapper(currentBE);
+            if (wrapper != null) {
+                int totalSlots = wrapper.$getSlotCount();
 
-                // Exclude crafting grid slots (1 to 9)
-                if (adjustedSlotIndex < container.slots.size() && (adjustedSlotIndex < 1 || adjustedSlotIndex > 9)) {
-                    slots.add(container.getSlot(adjustedSlotIndex));
+                for (int i = 0; i < container.slots.size(); i++) {
+                    Slot slot = container.slots.get(i);
+                    if (slot instanceof SideContainerSlot) {
+                        SideContainerSlot sideSlot = (SideContainerSlot) slot;
+                        if (sideSlot.getSlotIndex() < totalSlots && wrapper.$valid(sideSlot.getSlotIndex())) {
+                            slots.add(slot);
+                        }
+                    }
                 }
             }
         }
 
-        // Add player inventory slots after side containers
-        int playerInventoryStart = container.getPlayerInventoryStartIndex();
-        for (int i = playerInventoryStart; i < container.slots.size(); i++) {
-            // Exclude crafting grid slots (1 to 9)
-            if (i < 1 || i > 9) {
-                Slot slot = container.getSlot(i);
-                assert mc.player != null;
-                if (slot.allowModification(mc.player)) {
-                    slots.add(slot);
-                }
+        int playerStart = container.getPlayerInventoryStartIndex();
+        for (int i = playerStart; i < container.slots.size(); i++) {
+            Slot slot = container.getSlot(i);
+            if (slot.container == mc.player.getInventory() &&
+                    (mc.player == null || slot.allowModification(mc.player))) {
+                slots.add(slot);
             }
         }
 
