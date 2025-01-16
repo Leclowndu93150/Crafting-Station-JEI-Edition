@@ -10,7 +10,7 @@ import net.minecraft.core.NonNullList;
 
 public class PersistantCraftingContainer implements CraftingContainer {
 
-  private boolean doNotCallUpdates;
+  public boolean doNotCallUpdates;
   private final AbstractContainerMenu eventHandler;
   protected final SimpleContainer inv;
 
