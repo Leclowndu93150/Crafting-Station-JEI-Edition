@@ -135,14 +135,11 @@ public class CraftingStationMenu extends AbstractContainerMenu {
                 int cols = 6;
 
                 for (int i = 0; i < totalSlots; i++) {
-                    int displayIndex = i - firstSlot;
-                    if (displayIndex >= 0 && displayIndex < VISIBLE_SLOTS) {
-                        int row = displayIndex / cols;
-                        int col = displayIndex % cols;
-                        int xPos = (needsScroll() ? -125 : -117) + col * 18;
-                        int yPos = 17 + row * 18;
-                        addSlot(new SideContainerSlot(i, xPos, yPos, this));
-                    }
+                    int row = i / cols;
+                    int col = i % cols;
+                    int xPos = (needsScroll() ? -125 : -117) + col * 18;
+                    int yPos = 17 + row * 18;
+                    addSlot(new SideContainerSlot(i, xPos, yPos, this));
                 }
             }
         }
@@ -251,89 +248,71 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     @Override
-    public ItemStack quickMoveStack(Player player, int index) {
-        ItemStack itemstack = ItemStack.EMPTY;
-        Slot slot = this.slots.get(index);
-
-        if (slot != null && slot.hasItem()) {
-            ItemStack stackInSlot = slot.getItem();
-            itemstack = stackInSlot.copy();
-
-            if (index == 0) { // Result slot
-                craftMatrix.setDoNotCallUpdates(true);
-                try {
-                    if (!moveToPlayerInventory(stackInSlot) && !moveToSideInventory(stackInSlot)) {
-                        return ItemStack.EMPTY;
-                    }
-                    slot.onQuickCraft(stackInSlot, itemstack);
-                } finally {
-                    craftMatrix.setDoNotCallUpdates(false);
-                    craftMatrix.setChanged();
-                }
-            } else if (index < 10) { // Crafting grid
-                if (!moveToPlayerInventory(stackInSlot) && !moveToSideInventory(stackInSlot)) {
-                    return ItemStack.EMPTY;
-                }
-            } else if (hasSideContainers() && index < 10 + subContainerSize()) { // Side container
-                if (!moveToCraftingStation(stackInSlot) && !moveToPlayerInventory(stackInSlot)) {
-                    return ItemStack.EMPTY;
-                }
-            } else { // Player inventory
-                if (!moveToCraftingStation(stackInSlot) && !moveToSideInventory(stackInSlot)) {
-                    return ItemStack.EMPTY;
-                }
-            }
-
-            if (stackInSlot.isEmpty()) {
-                slot.set(ItemStack.EMPTY);
-            } else {
-                slot.setChanged();
-            }
-
-            if (stackInSlot.getCount() == itemstack.getCount()) {
-                return ItemStack.EMPTY;
-            }
-
-            slot.onTake(player, stackInSlot);
+    public ItemStack quickMoveStack(Player playerIn, int index) {
+        if (hasSideContainers()) {
+            return handleTransferWithSides(playerIn, index);
         }
 
-        return itemstack;
-    }
-
-
-    protected ItemStack handleTransferWithSides(Player player, int index) {
         Slot slot = this.slots.get(index);
-
         if (slot == null || !slot.hasItem()) {
             return ItemStack.EMPTY;
         }
 
         ItemStack ret = slot.getItem().copy();
-        ItemStack stack = ret.copy();
-
+        ItemStack stack = slot.getItem().copy();
         boolean nothingDone;
 
-        // Crafting output slot
-        if (index == 0) {
+        if (index == 0) { // Crafting output
+            craftMatrix.setDoNotCallUpdates(true);
+            try {
+                nothingDone = !moveToPlayerInventory(stack);
+            } finally {
+                craftMatrix.setDoNotCallUpdates(false);
+                craftMatrix.setChanged();
+            }
+        } else if (index < 10) { // Crafting grid
+            nothingDone = !moveToPlayerInventory(stack);
+        } else { // Player inventory
+            nothingDone = !moveToCraftingStation(stack);
+        }
+
+        if (nothingDone) {
+            return ItemStack.EMPTY;
+        }
+        return notifySlotAfterTransfer(playerIn, stack, ret, slot);
+    }
+
+    protected ItemStack handleTransferWithSides(Player player, int index) {
+        Slot slot = this.slots.get(index);
+        if (slot == null || !slot.hasItem()) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack ret = slot.getItem().copy();
+        ItemStack stack = ret.copy();
+        boolean nothingDone;
+
+        if (index == 0) { // Output slot
+            craftMatrix.setDoNotCallUpdates(true);
+            try {
+                nothingDone = !refillSideInventory(stack);
+                nothingDone &= !moveToPlayerInventory(stack);
+                nothingDone &= !mergeItemStackMove(stack, 10, 10 + subContainerSize());
+            } finally {
+                craftMatrix.setDoNotCallUpdates(false);
+                craftMatrix.setChanged();
+            }
+        } else if (index < 10) { // Crafting grid
             nothingDone = !refillSideInventory(stack);
             nothingDone &= !moveToPlayerInventory(stack);
             nothingDone &= !moveToSideInventory(stack);
-        }
-        // Crafting grid slots
-        else if (index < 10) {
-            nothingDone = !refillSideInventory(stack);
-            nothingDone &= !moveToPlayerInventory(stack);
-            nothingDone &= !moveToSideInventory(stack);
-        }
-        // Side container slots
-        else if (index < getPlayerInventoryStartIndex()) {
+        } else if (index < 10 + subContainerSize()) { // Side container
             nothingDone = !moveToCraftingStation(stack);
             nothingDone &= !moveToPlayerInventory(stack);
-        }
-        // Player inventory slots
-        else {
+        } else if (index >= 10 + subContainerSize()) { // Player inventory
             nothingDone = !moveToCraftingStation(stack);
             nothingDone &= !moveToSideInventory(stack);
+        } else {
+            return ItemStack.EMPTY;
         }
 
         if (nothingDone) {
@@ -341,6 +320,8 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         }
         return notifySlotAfterTransfer(player, stack, ret, slot);
     }
+
+
 
     protected static void slotChangedCraftingGrid(
             AbstractContainerMenu pMenu,
