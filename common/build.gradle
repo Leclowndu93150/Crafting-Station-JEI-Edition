@@ -23,9 +23,6 @@ dependencies {
     annotationProcessor group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
 
     compileOnly "dev.emi:emi-xplat-mojmap:${emi_version}:api"
-
-    //TODO remove this before committing changes
-    compileOnly "dev.emi:emi-xplat-mojmap:${emi_version}"
 }
 
 configurations {
