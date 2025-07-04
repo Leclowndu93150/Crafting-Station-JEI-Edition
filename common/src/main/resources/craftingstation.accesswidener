@@ -23,3 +23,7 @@ extendable method net/minecraft/world/inventory/AbstractContainerMenu synchroniz
 accessible field net/minecraft/world/inventory/AbstractContainerMenu remoteSlots Lnet/minecraft/core/NonNullList;
 accessible field net/minecraft/world/inventory/AbstractContainerMenu synchronizer Lnet/minecraft/world/inventory/ContainerSynchronizer;
 accessible field net/minecraft/world/inventory/AbstractContainerMenu suppressRemoteUpdates Z
+
+# Rendering
+accessible field net/minecraft/client/gui/screens/inventory/CraftingScreen CRAFTING_TABLE_LOCATION Lnet/minecraft/resources/ResourceLocation;
+accessible field net/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen SCROLLER_SPRITE Lnet/minecraft/resources/ResourceLocation;
