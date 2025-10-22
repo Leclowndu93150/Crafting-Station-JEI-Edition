@@ -1,6 +1,7 @@
 package tfar.craftingstation.menu;
 
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+import net.minecraft.util.Mth;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.*;
@@ -48,6 +49,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     private final Player player;
     private final BlockPos pos;
     private int firstSlot;
+    private int visibleSideSlotCount;
 
     public CraftingStationMenu(int id, Inventory inv, BlockPos pos) {
         this(id, inv, new SimpleContainer(9), pos);
@@ -126,18 +128,22 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
     protected void addSideInventorySlots() {
         setSideContainerStartIndex(10);
+        visibleSideSlotCount = 0;
 
         BlockEntity currentBE = blockEntityMap.get(getSelectedContainer());
         if (currentBE != null) {
             SideContainerWrapper wrapper = Services.PLATFORM.getWrapper(currentBE);
             if (wrapper != null) {
                 int totalSlots = wrapper.$getSlotCount();
+                visibleSideSlotCount = Math.min(totalSlots, VISIBLE_SLOTS);
                 int cols = 6;
+                boolean scrolling = totalSlots > VISIBLE_SLOTS;
+                int xOffset = (scrolling ? -125 : -117);
 
-                for (int i = 0; i < totalSlots; i++) {
+                for (int i = 0; i < visibleSideSlotCount; i++) {
                     int row = i / cols;
                     int col = i % cols;
-                    int xPos = (needsScroll() ? -125 : -117) + col * 18;
+                    int xPos = xOffset + col * 18;
                     int yPos = 17 + row * 18;
                     addSlot(new SideContainerSlot(i, xPos, yPos, this));
                 }
@@ -205,7 +211,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     protected void addPlayerSlots(Inventory playerInventory) {
-        setPlayerInventoryStartIndex(getSideContainerStartIndex(Direction.NORTH) + subContainerSize());
+        setPlayerInventoryStartIndex(getSideContainerStartIndex(Direction.NORTH) + getVisibleSideSlotCount());
 
         // Player Inventory (3 rows of 9 slots)
         for (int y = 0; y < 3; y++) {
@@ -296,7 +302,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             try {
                 nothingDone = !refillSideInventory(stack);
                 nothingDone &= !moveToPlayerInventory(stack);
-                nothingDone &= !mergeItemStackMove(stack, 10, 10 + subContainerSize());
+                nothingDone &= !mergeItemStackMove(stack, 10, 10 + getVisibleSideSlotCount());
             } finally {
                 craftMatrix.setDoNotCallUpdates(false);
                 craftMatrix.setChanged();
@@ -305,10 +311,10 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             nothingDone = !refillSideInventory(stack);
             nothingDone &= !moveToPlayerInventory(stack);
             nothingDone &= !moveToSideInventory(stack);
-        } else if (index < 10 + subContainerSize()) { // Side container
+        } else if (index < 10 + getVisibleSideSlotCount()) { // Side container
             nothingDone = !moveToCraftingStation(stack);
             nothingDone &= !moveToPlayerInventory(stack);
-        } else if (index >= 10 + subContainerSize()) { // Player inventory
+        } else if (index >= 10 + getVisibleSideSlotCount()) { // Player inventory
             nothingDone = !moveToCraftingStation(stack);
             nothingDone &= !moveToSideInventory(stack);
         } else {
@@ -427,7 +433,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     protected boolean moveToPlayerInventory(ItemStack stack) {
-        int start = 10 + (hasSideContainers() ? subContainerSize() : 0);
+        int start = 10 + (hasSideContainers() ? getVisibleSideSlotCount() : 0);
         return moveItemStackTo(stack, start, this.slots.size(), true);
     }
 
@@ -633,11 +639,21 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     public void setFirstSlot(int firstSlot) {
-        this.firstSlot = firstSlot;
+        SideContainerWrapper handler = hasSideContainers() ? getCurrentHandler() : null;
+        if (handler == null) {
+            this.firstSlot = 0;
+            return;
+        }
+        int maxOffset = Math.max(0, handler.$getSlotCount() - VISIBLE_SLOTS);
+        this.firstSlot = Mth.clamp(firstSlot, 0, maxOffset);
     }
 
     public int getFirstSlot() {
         return firstSlot;
+    }
+
+    public int getVisibleSideSlotCount() {
+        return visibleSideSlotCount;
     }
 
     @Override
