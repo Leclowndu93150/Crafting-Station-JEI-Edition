@@ -15,6 +15,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.network.chat.Component;
 import tfar.craftingstation.network.C2SScrollPacket;
 import tfar.craftingstation.platform.Services;
+import tfar.craftingstation.util.SideContainerWrapper;
 
 public class CraftingStationScreen extends AbstractContainerScreen<CraftingStationMenu> {
     private static final ResourceLocation SCROLLBAR_BACKGROUND_AND_TAB = ResourceLocation.parse("textures/gui/container/creative_inventory/tab_items.png");
@@ -83,6 +84,26 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
         super.renderLabels(stack, mouseX, mouseY);
         if (menu.hasSideContainers()) {
             stack.drawString(font, getTruncatedString(), -122, 6, 0x404040, false);
+        }
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        if (!menu.hasSideContainers()) {
+            currentScroll = 0;
+            return;
+        }
+        SideContainerWrapper handler = menu.getCurrentHandler();
+        if (handler == null) {
+            currentScroll = 0;
+            return;
+        }
+        int maxOffset = handler.$getSlotCount() - VISIBLE_SLOTS;
+        if (maxOffset <= 0) {
+            currentScroll = 0;
+        } else {
+            currentScroll = (double) menu.getFirstSlot() / maxOffset;
         }
     }
 
@@ -195,4 +216,3 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
         currentScroll = Mth.clamp(scroll,0,1);
     }
 }
-
