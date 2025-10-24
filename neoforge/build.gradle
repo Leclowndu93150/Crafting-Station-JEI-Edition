@@ -48,12 +48,7 @@ dependencies {
     compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}")
     compileOnly "dev.emi:emi-neoforge:${emi_version}:api"
 
-    if (project.use_jei) {
-        runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
-    }
-    if (project.use_emi) {
-        runtimeOnly "dev.emi:emi-neoforge:${emi_version}"
-    }
+    runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 
     runtimeOnly "curse.maven:sophisticated-core-618298:5869813"
     runtimeOnly "curse.maven:sophisticated-storage-619320:5871955"

@@ -71,7 +71,8 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
                     Slot slot = container.slots.get(i);
                     if (slot instanceof SideContainerSlot) {
                         SideContainerSlot sideSlot = (SideContainerSlot) slot;
-                        if (sideSlot.getSlotIndex() < totalSlots && wrapper.$valid(sideSlot.getSlotIndex())) {
+                        int actualSlot = sideSlot.getActualSlot();
+                        if (actualSlot >= 0 && actualSlot < totalSlots && wrapper.$valid(actualSlot)) {
                             slots.add(slot);
                         }
                     }

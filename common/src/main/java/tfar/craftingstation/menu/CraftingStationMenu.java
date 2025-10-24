@@ -136,6 +136,13 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             return craftingStationMenu.isValidSideSlot(handler, actualSlot) ? handler.$getMaxStackSize(actualSlot) : 0;
         }
 
+        @Override
+        public boolean isFake() {
+            SideContainerWrapper handler = craftingStationMenu.getCurrentHandler();
+            int actualSlot = getActualSlot();
+            return !craftingStationMenu.isValidSideSlot(handler, actualSlot);
+        }
+
         public int getActualSlot() {
             return slotIndex + craftingStationMenu.getFirstSlot();
         }
@@ -708,6 +715,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             SideContainerSlot existing = sideSlots.get(i);
             if (existing.x != xPos || existing.y != yPos) {
                 SideContainerSlot replacement = new SideContainerSlot(i, xPos, yPos, this);
+                replacement.index = existing.index;
                 sideSlots.set(i, replacement);
                 int slotListIndex = sideContainerStartIndex + i;
                 if (slotListIndex < this.slots.size()) {

@@ -6,6 +6,8 @@ bin
 .classpath
 .project
 
+JustEnoughItems-1.21.1
+
 # idea
 out
 *.ipr
