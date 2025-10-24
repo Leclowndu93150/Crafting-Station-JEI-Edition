@@ -55,7 +55,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     private final BlockPos pos;
     private int firstSlot;
     private int visibleSideSlotCount;
-    private final List<SideContainerSlot> sideSlots = new ArrayList<>(VISIBLE_SLOTS);
+    private final List<SideContainerSlot> sideSlots = new ArrayList<>();
 
     public CraftingStationMenu(int id, Inventory inv, BlockPos pos) {
         this(id, inv, new SimpleContainer(9), pos);
@@ -85,76 +85,84 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
     public static class SideContainerSlot extends Slot {
         private final CraftingStationMenu craftingStationMenu;
+        private final Direction direction;
         private final int slotIndex;
 
-        public SideContainerSlot(int slot, int x, int y, CraftingStationMenu craftingStationMenu) {
-            super(new SimpleContainer(0), slot, x, y);
+        public SideContainerSlot(Direction direction, int slotIndex, int x, int y, CraftingStationMenu craftingStationMenu) {
+            super(new SimpleContainer(0), slotIndex, x, y);
             this.craftingStationMenu = craftingStationMenu;
-            this.slotIndex = slot;
+            this.direction = direction;
+            this.slotIndex = slotIndex;
+        }
+
+        private SideContainerWrapper getHandler() {
+            return craftingStationMenu.getHandlerFor(direction);
         }
 
         @Override
         public ItemStack getItem() {
-            SideContainerWrapper handler = craftingStationMenu.getCurrentHandler();
-            int actualSlot = getActualSlot();
-            if (!craftingStationMenu.isValidSideSlot(handler, actualSlot)) {
+            SideContainerWrapper handler = getHandler();
+            if (!craftingStationMenu.isValidSideSlot(handler, slotIndex)) {
                 return ItemStack.EMPTY;
             }
-            return handler.$getStack(actualSlot);
+            return handler.$getStack(slotIndex);
         }
 
         @Override
         public ItemStack remove(int amount) {
-            SideContainerWrapper handler = craftingStationMenu.getCurrentHandler();
-            int actualSlot = getActualSlot();
-            if (!craftingStationMenu.isValidSideSlot(handler, actualSlot)) {
+            SideContainerWrapper handler = getHandler();
+            if (!craftingStationMenu.isValidSideSlot(handler, slotIndex)) {
                 return ItemStack.EMPTY;
             }
-            return handler.$removeStack(actualSlot, amount);
+            return handler.$removeStack(slotIndex, amount);
         }
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            SideContainerWrapper handler = craftingStationMenu.getCurrentHandler();
-            int actualSlot = getActualSlot();
-            return craftingStationMenu.isValidSideSlot(handler, actualSlot) && handler.$valid(actualSlot);
+            SideContainerWrapper handler = getHandler();
+            return craftingStationMenu.isValidSideSlot(handler, slotIndex) && handler.$valid(slotIndex);
         }
 
         @Override
         public void set(ItemStack stack) {
-            SideContainerWrapper handler = craftingStationMenu.getCurrentHandler();
-            int actualSlot = getActualSlot();
-            if (craftingStationMenu.isValidSideSlot(handler, actualSlot)) {
-                handler.$setStack(actualSlot, stack);
+            SideContainerWrapper handler = getHandler();
+            if (craftingStationMenu.isValidSideSlot(handler, slotIndex)) {
+                handler.$setStack(slotIndex, stack);
             }
         }
 
         @Override
         public int getMaxStackSize() {
-            SideContainerWrapper handler = craftingStationMenu.getCurrentHandler();
-            int actualSlot = getActualSlot();
-            return craftingStationMenu.isValidSideSlot(handler, actualSlot) ? handler.$getMaxStackSize(actualSlot) : 0;
+            SideContainerWrapper handler = getHandler();
+            return craftingStationMenu.isValidSideSlot(handler, slotIndex) ? handler.$getMaxStackSize(slotIndex) : 0;
         }
 
         @Override
         public boolean isFake() {
-            SideContainerWrapper handler = craftingStationMenu.getCurrentHandler();
-            int actualSlot = getActualSlot();
-            return !craftingStationMenu.isValidSideSlot(handler, actualSlot);
+            SideContainerWrapper handler = getHandler();
+            return !craftingStationMenu.isValidSideSlot(handler, slotIndex);
         }
 
         public int getActualSlot() {
-            return slotIndex + craftingStationMenu.getFirstSlot();
+            return slotIndex;
         }
 
         public int getSlotIndex() {
             return slotIndex;
+        }
+
+        public Direction getDirection() {
+            return direction;
         }
     }
 
 
     public SideContainerWrapper getCurrentHandler() {
         return Services.PLATFORM.getWrapper(blockEntityMap.get(getSelectedContainer()));
+    }
+
+    public SideContainerWrapper getHandlerFor(Direction direction) {
+        return Services.PLATFORM.getWrapper(blockEntityMap.get(direction));
     }
 
     protected void addSideInventorySlots() {
@@ -165,15 +173,23 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             return;
         }
 
-        if (!sideSlots.isEmpty()) {
-            refreshSideSlots();
-            return;
-        }
-
-        for (int i = 0; i < VISIBLE_SLOTS; i++) {
-            SideContainerSlot slot = new SideContainerSlot(i, HIDDEN_SLOT_POS, HIDDEN_SLOT_POS, this);
-            sideSlots.add(slot);
-            addSlot(slot);
+        if (sideSlots.isEmpty()) {
+            for (Direction direction : Direction.values()) {
+                BlockEntity blockEntity = blockEntityMap.get(direction);
+                if (blockEntity == null) {
+                    continue;
+                }
+                SideContainerWrapper wrapper = getHandlerFor(direction);
+                if (wrapper == null) {
+                    continue;
+                }
+                int slotCount = wrapper.$getSlotCount();
+                for (int i = 0; i < slotCount; i++) {
+                    SideContainerSlot slot = new SideContainerSlot(direction, i, HIDDEN_SLOT_POS, HIDDEN_SLOT_POS, this);
+                    sideSlots.add(slot);
+                    addSlot(slot);
+                }
+            }
         }
 
         refreshSideSlots();
@@ -305,7 +321,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
                 craftMatrix.setDoNotCallUpdates(false);
                 craftMatrix.setChanged();
             }
-        } else if (index < 10) { // Crafting grid
+        } else if (index < sideContainerStartIndex) { // Crafting grid
             nothingDone = !moveToPlayerInventory(stack);
         } else { // Player inventory
             nothingDone = !moveToCraftingStation(stack);
@@ -326,26 +342,36 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         ItemStack stack = ret.copy();
         boolean nothingDone;
 
+        int visibleStartIndex = getVisibleSideSlotStartIndex();
+        int visibleEndIndex = getVisibleSideSlotEndIndex();
+        boolean hasVisibleRange = visibleStartIndex >= 0 && visibleEndIndex > visibleStartIndex;
+        int allSideStartIndex = sideContainerStartIndex;
+        int allSideEndIndex = sideContainerStartIndex + sideSlots.size();
+
         if (index == 0) { // Output slot
             craftMatrix.setDoNotCallUpdates(true);
             try {
                 nothingDone = !refillSideInventory(stack);
                 nothingDone &= !moveToPlayerInventory(stack);
-                nothingDone &= !mergeItemStackMove(stack, 10, 10 + getVisibleSideSlotCount());
+                boolean merged = false;
+                if (hasVisibleRange) {
+                    merged = mergeItemStackMove(stack, visibleStartIndex, visibleEndIndex);
+                }
+                nothingDone &= !merged;
             } finally {
                 craftMatrix.setDoNotCallUpdates(false);
                 craftMatrix.setChanged();
             }
-        } else if (index < 10) { // Crafting grid
+        } else if (index < sideContainerStartIndex) { // Crafting grid
             nothingDone = !refillSideInventory(stack);
             nothingDone &= !moveToPlayerInventory(stack);
             nothingDone &= !moveToSideInventory(stack);
-        } else if (index < 10 + getVisibleSideSlotCount()) { // Visible side container
+        } else if (hasVisibleRange && index >= visibleStartIndex && index < visibleEndIndex) { // Visible side container
             nothingDone = !moveToCraftingStation(stack);
             nothingDone &= !moveToPlayerInventory(stack);
-        } else if (index < 10 + sideSlots.size()) { // Hidden side slot, ignore
+        } else if (index >= allSideStartIndex && index < allSideEndIndex) { // Hidden side slot, ignore
             return ItemStack.EMPTY;
-        } else if (index >= 10 + sideSlots.size()) { // Player inventory
+        } else if (index >= allSideEndIndex) { // Player inventory
             nothingDone = !moveToCraftingStation(stack);
             nothingDone &= !moveToSideInventory(stack);
         } else {
@@ -464,7 +490,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     protected boolean moveToPlayerInventory(ItemStack stack) {
-        int start = 10 + (hasSideContainers() ? sideSlots.size() : 0);
+        int start = sideContainerStartIndex + (hasSideContainers() ? sideSlots.size() : 0);
         return moveItemStackTo(stack, start, this.slots.size(), true);
     }
 
@@ -473,7 +499,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     protected boolean moveToCraftingStation(ItemStack itemstack) {
-        return this.moveItemStackTo(itemstack, 1, 10, false);
+        return this.moveItemStackTo(itemstack, 1, sideContainerStartIndex, false);
     }
 
     // Fix for a vanilla bug: doesn't take Slot.getMaxStackSize into account
@@ -693,7 +719,12 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     private void refreshSideSlots() {
         SideContainerWrapper handler = getCurrentHandler();
         int totalSlots = handler != null ? handler.$getSlotCount() : 0;
-        visibleSideSlotCount = Math.min(totalSlots, VISIBLE_SLOTS);
+
+        int maxOffset = Math.max(0, totalSlots - VISIBLE_SLOTS);
+        this.firstSlot = Mth.clamp(this.firstSlot, 0, maxOffset);
+
+        int available = Math.max(0, totalSlots - this.firstSlot);
+        visibleSideSlotCount = Math.min(available, VISIBLE_SLOTS);
 
         if (sideSlots.isEmpty()) {
             return;
@@ -701,20 +732,28 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
         boolean scrolling = totalSlots > VISIBLE_SLOTS;
         int xOffset = (scrolling ? -125 : -117);
+        Direction selected = getSelectedContainer();
 
         for (int i = 0; i < sideSlots.size(); i++) {
+            SideContainerSlot existing = sideSlots.get(i);
+            Direction slotDirection = existing.getDirection();
+            int actualSlot = existing.getActualSlot();
+
             int xPos = HIDDEN_SLOT_POS;
             int yPos = HIDDEN_SLOT_POS;
-            if (i < visibleSideSlotCount && totalSlots > 0) {
-                int row = i / SLOTS_PER_ROW;
-                int col = i % SLOTS_PER_ROW;
-                xPos = xOffset + col * 18;
-                yPos = 17 + row * 18;
+
+            if (slotDirection == selected && actualSlot >= firstSlot && actualSlot < totalSlots) {
+                int displayIndex = actualSlot - firstSlot;
+                if (displayIndex >= 0 && displayIndex < visibleSideSlotCount) {
+                    int row = displayIndex / SLOTS_PER_ROW;
+                    int col = displayIndex % SLOTS_PER_ROW;
+                    xPos = xOffset + col * 18;
+                    yPos = 17 + row * 18;
+                }
             }
 
-            SideContainerSlot existing = sideSlots.get(i);
             if (existing.x != xPos || existing.y != yPos) {
-                SideContainerSlot replacement = new SideContainerSlot(i, xPos, yPos, this);
+                SideContainerSlot replacement = new SideContainerSlot(slotDirection, actualSlot, xPos, yPos, this);
                 replacement.index = existing.index;
                 sideSlots.set(i, replacement);
                 int slotListIndex = sideContainerStartIndex + i;
@@ -723,9 +762,40 @@ public class CraftingStationMenu extends AbstractContainerMenu {
                 }
             }
         }
+    }
 
-        int maxOffset = Math.max(0, totalSlots - VISIBLE_SLOTS);
-        this.firstSlot = Mth.clamp(this.firstSlot, 0, maxOffset);
+    private int getSelectedSideSlotOffset() {
+        Direction selected = getSelectedContainer();
+        for (int i = 0; i < sideSlots.size(); i++) {
+            if (sideSlots.get(i).getDirection() == selected) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private int getSelectedSideSlotContainerStart() {
+        int offset = getSelectedSideSlotOffset();
+        if (offset < 0) {
+            return -1;
+        }
+        return sideContainerStartIndex + offset;
+    }
+
+    private int getVisibleSideSlotStartIndex() {
+        int base = getSelectedSideSlotContainerStart();
+        if (base < 0) {
+            return -1;
+        }
+        return base + getFirstSlot();
+    }
+
+    private int getVisibleSideSlotEndIndex() {
+        int start = getVisibleSideSlotStartIndex();
+        if (start < 0) {
+            return -1;
+        }
+        return start + getVisibleSideSlotCount();
     }
 
     private boolean isValidSideSlot(SideContainerWrapper handler, int slot) {

@@ -19,7 +19,9 @@ import tfar.craftingstation.platform.Services;
 import tfar.craftingstation.util.SideContainerWrapper;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class CraftingStationTransferHandler implements IRecipeTransferInfo<CraftingStationMenu, RecipeHolder<CraftingRecipe>> {
@@ -59,33 +61,36 @@ public class CraftingStationTransferHandler implements IRecipeTransferInfo<Craft
         List<Slot> slots = new ArrayList<>();
         Minecraft mc = Minecraft.getInstance();
 
-        Direction currentDir = container.getSelectedContainer();
-        BlockEntity currentBE = container.blockEntityMap.get(currentDir);
+        Map<Direction, SideContainerWrapper> wrapperCache = new EnumMap<>(Direction.class);
 
-        if (currentBE != null) {
-            SideContainerWrapper wrapper = Services.PLATFORM.getWrapper(currentBE);
-            if (wrapper != null) {
+        for (Slot slot : container.slots) {
+            if (slot instanceof SideContainerSlot sideSlot) {
+                Direction direction = sideSlot.getDirection();
+                BlockEntity blockEntity = container.blockEntityMap.get(direction);
+                if (blockEntity == null) {
+                    continue;
+                }
+
+                SideContainerWrapper wrapper = wrapperCache.computeIfAbsent(direction, dir -> Services.PLATFORM.getWrapper(blockEntity));
+                if (wrapper == null) {
+                    continue;
+                }
+
+                int actualSlot = sideSlot.getActualSlot();
                 int totalSlots = wrapper.$getSlotCount();
-
-                for (int i = 0; i < container.slots.size(); i++) {
-                    Slot slot = container.slots.get(i);
-                    if (slot instanceof SideContainerSlot) {
-                        SideContainerSlot sideSlot = (SideContainerSlot) slot;
-                        int actualSlot = sideSlot.getActualSlot();
-                        if (actualSlot >= 0 && actualSlot < totalSlots && wrapper.$valid(actualSlot)) {
-                            slots.add(slot);
-                        }
-                    }
+                if (actualSlot >= 0 && actualSlot < totalSlots && wrapper.$valid(actualSlot)) {
+                    slots.add(slot);
                 }
             }
         }
 
         int playerStart = container.getPlayerInventoryStartIndex();
-        for (int i = playerStart; i < container.slots.size(); i++) {
-            Slot slot = container.getSlot(i);
-            if (slot.container == mc.player.getInventory() &&
-                    (mc.player == null || slot.allowModification(mc.player))) {
-                slots.add(slot);
+        if (mc.player != null) {
+            for (int i = playerStart; i < container.slots.size(); i++) {
+                Slot slot = container.getSlot(i);
+                if (slot.container == mc.player.getInventory() && slot.allowModification(mc.player)) {
+                    slots.add(slot);
+                }
             }
         }
 
