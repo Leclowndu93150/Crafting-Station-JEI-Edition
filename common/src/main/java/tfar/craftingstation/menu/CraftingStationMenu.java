@@ -706,6 +706,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         }
         int maxOffset = Math.max(0, handler.$getSlotCount() - VISIBLE_SLOTS);
         this.firstSlot = Mth.clamp(firstSlot, 0, maxOffset);
+        refreshSideSlots();
     }
 
     public int getFirstSlot() {
