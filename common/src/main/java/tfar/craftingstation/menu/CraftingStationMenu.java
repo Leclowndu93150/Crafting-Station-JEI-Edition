@@ -414,7 +414,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
             pResultSlots.setItem(0, itemstack);
             pMenu.setRemoteSlot(0, itemstack);
-            serverplayer.connection.send(new ClientboundContainerSetSlotPacket(pMenu.containerId, pMenu.incrementStateId(), 0, itemstack));
+            pMenu.broadcastFullState();
         }
     }
 
