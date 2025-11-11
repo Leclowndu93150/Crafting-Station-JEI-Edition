@@ -11,8 +11,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.network.chat.Component;
 import tfar.craftingstation.blockentity.CraftingStationBlockEntity;
 import tfar.craftingstation.menu.CraftingStationMenu;
 import tfar.craftingstation.network.C2SModPacket;
@@ -79,5 +81,9 @@ public interface IPlatformHelper {
     default CraftingStationBlockEntity create(BlockPos pos, BlockState state) {
         return new CraftingStationBlockEntity(pos,state);
     }
+
+    Component fixSophisticatedStorageDisplayName(BlockEntity blockEntity);
+
+    ItemStack createSideDisplayStack(Level level, BlockPos pos, BlockState state, Player player);
 
 }

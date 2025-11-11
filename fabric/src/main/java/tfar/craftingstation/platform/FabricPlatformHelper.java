@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.transfer.v1.item.ItemVariant;
 import net.fabricmc.fabric.api.transfer.v1.storage.Storage;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,6 +20,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.MixinEnvironment;
@@ -128,5 +130,19 @@ public class FabricPlatformHelper implements IPlatformHelper {
     @Override
     public CraftingStationBlockEntity create(BlockPos pos, BlockState state) {
         return new CraftingStationBlockEntityFabric(pos,state);
+    }
+
+    @Override
+    public Component fixSophisticatedStorageDisplayName(BlockEntity blockEntity) {
+        // Fabric doesn't have SophisticatedStorage compat, return vanilla behavior
+        return blockEntity instanceof MenuProvider menuProvider 
+            ? menuProvider.getDisplayName() 
+            : blockEntity.getBlockState().getBlock().getName();
+    }
+
+    @Override
+    public ItemStack createSideDisplayStack(Level level, BlockPos pos, BlockState state, Player player) {
+        ItemStack stack = state.getBlock().getCloneItemStack(level, pos, state);
+        return stack.isEmpty() ? new ItemStack(state.getBlock()) : stack;
     }
 }

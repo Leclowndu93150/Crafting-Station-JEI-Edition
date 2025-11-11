@@ -1,6 +1,7 @@
 package tfar.craftingstation.platform;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -11,7 +12,10 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -21,7 +25,10 @@ import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import tfar.craftingstation.Configs;
+import tfar.craftingstation.compat.SophisticatedStorageCompat;
 import tfar.craftingstation.menu.CraftingStationMenu;
 import tfar.craftingstation.network.C2SModPacket;
 import tfar.craftingstation.network.PacketHandlerNeoForge;
@@ -116,5 +123,25 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
             return new SideContainerNeoForge(iItemHandlerModifiable);
         }
         return Empty.EMPTY;
+    }
+
+    @Override
+    public ItemStack createSideDisplayStack(Level level, BlockPos pos, BlockState state, Player player) {
+        BlockHitResult hitResult = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+        ItemStack stack = state.getCloneItemStack(hitResult, level, pos, player);
+        if (stack.isEmpty()) {
+            stack = state.getBlock().getCloneItemStack(level, pos, state);
+        }
+        return stack.isEmpty() ? new ItemStack(state.getBlock()) : stack;
+    }
+
+    @Override
+    public Component fixSophisticatedStorageDisplayName(BlockEntity blockEntity) {
+        if (isModLoaded("sophisticatedstorage")) {
+            return SophisticatedStorageCompat.fixDisplayName(blockEntity);
+        }
+        return blockEntity instanceof MenuProvider menuProvider 
+            ? menuProvider.getDisplayName() 
+            : blockEntity.getBlockState().getBlock().getName();
     }
 }

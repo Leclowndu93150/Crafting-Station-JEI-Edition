@@ -24,6 +24,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import tfar.craftingstation.util.SideContainerWrapper;
 
 import java.util.ArrayList;
@@ -227,8 +228,13 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
                 if (Services.PLATFORM.hasCapability(te)) {
                     blockEntityMap.put(dir, te);
-                    blocks.put(dir, new ItemStack(world.getBlockState(neighbor).getBlock()));
-                    containerNames.put(dir, te instanceof MenuProvider menuProvider ? menuProvider.getDisplayName() : te.getBlockState().getBlock().getName());
+                    BlockState neighborState = world.getBlockState(neighbor);
+                    ItemStack displayStack = Services.PLATFORM.createSideDisplayStack(world, neighbor, neighborState, player);
+                    if (displayStack.isEmpty()) {
+                        displayStack = new ItemStack(neighborState.getBlock());
+                    }
+                    blocks.put(dir, displayStack);
+                    containerNames.put(dir, Services.PLATFORM.fixSophisticatedStorageDisplayName(te));
 
                     if (defaultDirection == null && currentContainer == Direction.DOWN) {
                         defaultDirection = dir;

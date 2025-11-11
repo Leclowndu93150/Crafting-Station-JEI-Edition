@@ -83,7 +83,10 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
     protected void renderLabels(GuiGraphics stack, int mouseX, int mouseY) {
         super.renderLabels(stack, mouseX, mouseY);
         if (menu.hasSideContainers()) {
-            stack.drawString(font, getTruncatedString(), -122, 6, 0x404040, false);
+            Component displayName = menu.containerNames.getOrDefault(menu.getSelectedContainer(), Component.empty());
+            String displayText = displayName.getString();
+            String truncated = font.plainSubstrByWidth(displayText, 122);
+            stack.drawString(font, truncated, -122, 6, 0x404040, false);
         }
     }
 
@@ -105,14 +108,6 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
         } else {
             currentScroll = (double) menu.getFirstSlot() / maxOffset;
         }
-    }
-
-    String getTruncatedString() {
-        String string = menu.containerNames.getOrDefault(menu.getSelectedContainer(), Component.empty()).getString();
-        if (string.length() > 23) {
-            return string.substring(0, 23) + "...";
-        }
-        return string;
     }
 
     @Override
