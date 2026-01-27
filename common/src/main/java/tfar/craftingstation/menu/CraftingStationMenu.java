@@ -16,6 +16,7 @@ import tfar.craftingstation.network.S2CSideSetSideContainerSlot;
 import tfar.craftingstation.platform.Services;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -29,6 +30,7 @@ import tfar.craftingstation.util.SideContainerWrapper;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,6 +59,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     private int firstSlot;
     private int visibleSideSlotCount;
     private final List<SideContainerSlot> sideSlots = new ArrayList<>();
+    private final Map<Direction, NonNullList<ItemStack>> lastSyncedStacks = new HashMap<>();
 
     public CraftingStationMenu(int id, Inventory inv, BlockPos pos) {
         this(id, inv, new SimpleContainer(9), pos);
@@ -824,8 +827,20 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             BlockEntity blockEntity = entry.getValue();
             SideContainerWrapper wrapper = Services.PLATFORM.getWrapper(blockEntity);
             if (wrapper != null) {
-                for (int i = 0; i < wrapper.$getSlotCount(); i++) {
-                    Services.PLATFORM.sendToClient(new S2CSideSetSideContainerSlot(wrapper.$getStack(i), direction, i), (ServerPlayer) player);
+                int slotCount = wrapper.$getSlotCount();
+                NonNullList<ItemStack> lastSynced = lastSyncedStacks.computeIfAbsent(
+                        direction, d -> NonNullList.withSize(slotCount, ItemStack.EMPTY));
+                if (lastSynced.size() != slotCount) {
+                    lastSynced = NonNullList.withSize(slotCount, ItemStack.EMPTY);
+                    lastSyncedStacks.put(direction, lastSynced);
+                }
+                for (int i = 0; i < slotCount; i++) {
+                    ItemStack current = wrapper.$getStack(i);
+                    ItemStack previous = lastSynced.get(i);
+                    if (!ItemStack.matches(current, previous)) {
+                        Services.PLATFORM.sendToClient(new S2CSideSetSideContainerSlot(current, direction, i), (ServerPlayer) player);
+                        lastSynced.set(i, current.copy());
+                    }
                 }
             }
         }
