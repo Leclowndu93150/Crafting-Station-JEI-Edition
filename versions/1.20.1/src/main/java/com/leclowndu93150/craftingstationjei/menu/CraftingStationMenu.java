@@ -280,6 +280,9 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     public void setCurrentContainer(Direction dir) {
         this.currentContainer = dir;
         this.firstSlot = 0;
+        if (tileEntity != null && !world.isClientSide) {
+            tileEntity.setCurrentContainer(dir);
+        }
         refreshSideSlots();
     }
 
