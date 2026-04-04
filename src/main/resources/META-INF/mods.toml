@@ -29,3 +29,17 @@ mandatory = false
 versionRange = "[15.2,)"
 ordering = "AFTER"
 side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "polymorph"
+mandatory = false
+versionRange = "[0.49,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "craftingtweaks"
+mandatory = false
+versionRange = "[18.0,)"
+ordering = "AFTER"
+side = "BOTH"

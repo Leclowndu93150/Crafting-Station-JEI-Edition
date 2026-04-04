@@ -64,6 +64,9 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     implementation fg.deobf("curse.maven:jei-238222:7391695")
     implementation fg.deobf("curse.maven:iron-chests-228756:4614852")
+    compileOnly fg.deobf("curse.maven:polymorph-388800:6450982")
+    compileOnly fg.deobf("curse.maven:balm-531761:7420617")
+    compileOnly fg.deobf("curse.maven:crafting-tweaks-233071:7454498")
 }
 
 tasks.named('processResources', ProcessResources).configure {

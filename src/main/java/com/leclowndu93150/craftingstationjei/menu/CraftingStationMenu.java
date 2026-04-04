@@ -33,6 +33,9 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import com.leclowndu93150.craftingstationjei.compat.PolymorphCompat;
+import net.minecraftforge.fml.ModList;
+
 import java.util.*;
 
 public class CraftingStationMenu extends AbstractContainerMenu {
@@ -221,8 +224,13 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         if (world.isClientSide) return;
         ServerPlayer serverPlayer = (ServerPlayer) player;
         ItemStack result = ItemStack.EMPTY;
-        Optional<CraftingRecipe> optional = world.getServer().getRecipeManager()
-                .getRecipeFor(RecipeType.CRAFTING, craftMatrix, world);
+        Optional<CraftingRecipe> optional;
+        if (ModList.get().isLoaded("polymorph")) {
+            optional = PolymorphCompat.getRecipe(this, craftMatrix, world, player);
+        } else {
+            optional = world.getServer().getRecipeManager()
+                    .getRecipeFor(RecipeType.CRAFTING, craftMatrix, world);
+        }
         if (optional.isPresent()) {
             CraftingRecipe recipe = optional.get();
             if (craftResult.setRecipeUsed(world, serverPlayer, recipe)) {
@@ -403,25 +411,23 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     private void syncSideContainers() {
         for (Map.Entry<Direction, BlockEntity> entry : blockEntityMap.entrySet()) {
             Direction direction = entry.getKey();
-            BlockEntity blockEntity = entry.getValue();
             SideContainerWrapper wrapper = getHandlerFor(direction);
-            if (wrapper != null) {
-                int slotCount = wrapper.getSlotCount();
-                NonNullList<ItemStack> lastSynced = lastSyncedStacks.computeIfAbsent(
-                        direction, d -> NonNullList.withSize(slotCount, ItemStack.EMPTY));
-                if (lastSynced.size() != slotCount) {
-                    lastSynced = NonNullList.withSize(slotCount, ItemStack.EMPTY);
-                    lastSyncedStacks.put(direction, lastSynced);
-                }
-                for (int i = 0; i < slotCount; i++) {
-                    ItemStack current = wrapper.getStack(i);
-                    ItemStack previous = lastSynced.get(i);
-                    if (!ItemStack.matches(current, previous)) {
-                        PacketHandler.CHANNEL.send(
-                                PacketDistributor.PLAYER.with(() -> (ServerPlayer) player),
-                                new S2CSideSetSideContainerSlot(current, direction, i));
-                        lastSynced.set(i, current.copy());
-                    }
+            if (wrapper == null) continue;
+            int slotCount = wrapper.getSlotCount();
+            NonNullList<ItemStack> lastSynced = lastSyncedStacks.computeIfAbsent(
+                    direction, d -> NonNullList.withSize(slotCount, ItemStack.EMPTY));
+            if (lastSynced.size() != slotCount) {
+                lastSynced = NonNullList.withSize(slotCount, ItemStack.EMPTY);
+                lastSyncedStacks.put(direction, lastSynced);
+            }
+            for (int i = 0; i < slotCount; i++) {
+                ItemStack current = wrapper.getStack(i);
+                ItemStack previous = lastSynced.get(i);
+                if (!ItemStack.matches(current, previous)) {
+                    PacketHandler.CHANNEL.send(
+                            PacketDistributor.PLAYER.with(() -> (ServerPlayer) player),
+                            new S2CSideSetSideContainerSlot(current, direction, i));
+                    lastSynced.set(i, current.copy());
                 }
             }
         }

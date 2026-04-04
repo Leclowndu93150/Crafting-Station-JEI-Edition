@@ -2,6 +2,7 @@ package com.leclowndu93150.craftingstationjei;
 
 import com.leclowndu93150.craftingstationjei.client.CraftingStationBlockEntityRenderer;
 import com.leclowndu93150.craftingstationjei.client.CraftingStationScreen;
+import com.leclowndu93150.craftingstationjei.compat.CraftingTweaksCompat;
 import com.leclowndu93150.craftingstationjei.init.ModBlockEntityTypes;
 import com.leclowndu93150.craftingstationjei.init.ModBlocks;
 import com.leclowndu93150.craftingstationjei.init.ModItems;
@@ -16,6 +17,7 @@ import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -44,6 +46,9 @@ public class Craftingstationjei {
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         PacketHandler.init();
+        if (ModList.get().isLoaded("craftingtweaks")) {
+            CraftingTweaksCompat.init();
+        }
     }
 
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
