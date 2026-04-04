@@ -2,6 +2,7 @@ package com.leclowndu93150.craftingstationjei.init;
 
 import com.leclowndu93150.craftingstationjei.Craftingstationjei;
 import com.leclowndu93150.craftingstationjei.block.CraftingStationBlock;
+import com.leclowndu93150.craftingstationjei.block.CraftingStationSlabBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -15,4 +16,7 @@ public class ModBlocks {
 
     public static final RegistryObject<Block> CRAFTING_STATION = BLOCKS.register("crafting_station",
             () -> new CraftingStationBlock(BlockBehaviour.Properties.copy(Blocks.CRAFTING_TABLE)));
+
+    public static final RegistryObject<Block> CRAFTING_STATION_SLAB = BLOCKS.register("crafting_station_slab",
+            () -> new CraftingStationSlabBlock(BlockBehaviour.Properties.copy(Blocks.CRAFTING_TABLE)));
 }

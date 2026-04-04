@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "type=bottom": { "model": "craftingstationjei:block/crafting_station_slab" },
+    "type=top": { "model": "craftingstationjei:block/crafting_station_slab_top" },
+    "type=double": { "model": "craftingstationjei:block/crafting_station_slab_double" }
+  }
+}

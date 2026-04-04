@@ -19,10 +19,14 @@ public class ModItems {
     public static final RegistryObject<Item> CRAFTING_STATION = ITEMS.register("crafting_station",
             () -> new BlockItem(ModBlocks.CRAFTING_STATION.get(), new Item.Properties()));
 
+    public static final RegistryObject<Item> CRAFTING_STATION_SLAB = ITEMS.register("crafting_station_slab",
+            () -> new BlockItem(ModBlocks.CRAFTING_STATION_SLAB.get(), new Item.Properties()));
+
     @SubscribeEvent
     public static void addCreative(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
             event.accept(CRAFTING_STATION);
+            event.accept(CRAFTING_STATION_SLAB);
         }
     }
 }

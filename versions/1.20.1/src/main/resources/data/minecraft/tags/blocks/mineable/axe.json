@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "craftingstationjei:crafting_station"
+    "craftingstationjei:crafting_station",
+    "craftingstationjei:crafting_station_slab"
   ]
 }

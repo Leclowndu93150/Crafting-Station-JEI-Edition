@@ -2,16 +2,16 @@ package com.leclowndu93150.craftingstationjei.menu;
 
 import com.leclowndu93150.craftingstationjei.Craftingstationjei;
 import com.leclowndu93150.craftingstationjei.blockentity.CraftingStationBlockEntity;
+import com.leclowndu93150.craftingstationjei.compat.PolymorphCompat;
 import com.leclowndu93150.craftingstationjei.init.ModBlocks;
 import com.leclowndu93150.craftingstationjei.init.ModMenuTypes;
-import com.leclowndu93150.craftingstationjei.network.PacketHandler;
 import com.leclowndu93150.craftingstationjei.network.S2CSideSetSideContainerSlot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Container;
@@ -23,18 +23,17 @@ import net.minecraft.world.inventory.ResultContainer;
 import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.registries.ForgeRegistries;
-
-import com.leclowndu93150.craftingstationjei.compat.PolymorphCompat;
-import net.minecraftforge.fml.ModList;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.*;
 
@@ -64,7 +63,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     private final List<SideContainerSlot> sideSlots = new ArrayList<>();
     private final Map<Direction, NonNullList<ItemStack>> lastSyncedStacks = new HashMap<>();
 
-    public CraftingStationMenu(int id, Inventory inv, FriendlyByteBuf buf) {
+    public CraftingStationMenu(int id, Inventory inv, RegistryFriendlyByteBuf buf) {
         this(id, inv, new SimpleContainer(9), buf.readBlockPos());
     }
 
@@ -108,13 +107,13 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             BlockEntity te = world.getBlockEntity(neighbor);
             if (te == null || te instanceof CraftingStationBlockEntity) continue;
 
-            var beType = ForgeRegistries.BLOCK_ENTITY_TYPES.getHolder(
-                    ForgeRegistries.BLOCK_ENTITY_TYPES.getKey(te.getType())).orElse(null);
+            var beType = BuiltInRegistries.BLOCK_ENTITY_TYPE.getHolder(
+                    BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(te.getType())).orElse(null);
             if (beType != null && beType.is(Craftingstationjei.BLACKLISTED)) continue;
             if (te instanceof Container container && !container.stillValid(player)) continue;
 
-            var cap = te.getCapability(ForgeCapabilities.ITEM_HANDLER);
-            if (cap.isPresent()) {
+            IItemHandler handler = world.getCapability(Capabilities.ItemHandler.BLOCK, neighbor, null);
+            if (handler != null) {
                 blockEntityMap.put(dir, te);
                 BlockState neighborState = world.getBlockState(neighbor);
                 ItemStack displayStack = neighborState.getBlock().getCloneItemStack(world, neighbor, neighborState);
@@ -224,17 +223,19 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         if (world.isClientSide) return;
         ServerPlayer serverPlayer = (ServerPlayer) player;
         ItemStack result = ItemStack.EMPTY;
-        Optional<CraftingRecipe> optional;
+        CraftingInput craftInput = craftMatrix.asCraftInput();
+        Optional<RecipeHolder<CraftingRecipe>> optional;
         if (ModList.get().isLoaded("polymorph")) {
             optional = PolymorphCompat.getRecipe(this, craftMatrix, world, player);
         } else {
             optional = world.getServer().getRecipeManager()
-                    .getRecipeFor(RecipeType.CRAFTING, craftMatrix, world);
+                    .getRecipeFor(RecipeType.CRAFTING, craftInput, world);
         }
         if (optional.isPresent()) {
-            CraftingRecipe recipe = optional.get();
-            if (craftResult.setRecipeUsed(world, serverPlayer, recipe)) {
-                ItemStack assembled = recipe.assemble(craftMatrix, world.registryAccess());
+            RecipeHolder<CraftingRecipe> holder = optional.get();
+            CraftingRecipe recipe = holder.value();
+            if (craftResult.setRecipeUsed(world, serverPlayer, holder)) {
+                ItemStack assembled = recipe.assemble(craftInput, world.registryAccess());
                 if (assembled.isItemEnabled(world.enabledFeatures())) {
                     result = assembled;
                 }
@@ -242,8 +243,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         }
         craftResult.setItem(0, result);
         setRemoteSlot(0, result);
-        serverPlayer.connection.send(
-                new ClientboundContainerSetSlotPacket(containerId, incrementStateId(), 0, result));
+        broadcastFullState();
     }
 
     public SideContainerWrapper getCurrentHandler() {
@@ -253,9 +253,9 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     public SideContainerWrapper getHandlerFor(Direction direction) {
         BlockEntity be = blockEntityMap.get(direction);
         if (be == null) return null;
-        var cap = be.getCapability(ForgeCapabilities.ITEM_HANDLER);
-        if (cap.isPresent()) {
-            return new SideContainerWrapper(cap.orElseThrow(IllegalStateException::new));
+        IItemHandler handler = world.getCapability(Capabilities.ItemHandler.BLOCK, be.getBlockPos(), null);
+        if (handler != null) {
+            return new SideContainerWrapper(handler);
         }
         return null;
     }
@@ -428,8 +428,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
                 ItemStack current = wrapper.getStack(i);
                 ItemStack previous = lastSynced.get(i);
                 if (!ItemStack.matches(current, previous)) {
-                    PacketHandler.CHANNEL.send(
-                            PacketDistributor.PLAYER.with(() -> (ServerPlayer) player),
+                    PacketDistributor.sendToPlayer((ServerPlayer) player,
                             new S2CSideSetSideContainerSlot(current, direction, i));
                     lastSynced.set(i, current.copy());
                 }
