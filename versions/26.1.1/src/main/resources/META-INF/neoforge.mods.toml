@@ -1,0 +1,38 @@
+modLoader = "javafml"
+loaderVersion = "${neoforge_loader_version_range}"
+license = "${license}"
+
+[[mods]]
+modId = "craftingstation"
+version = "${version}"
+displayName = "Crafting Station"
+authors = "${mod_author}"
+description = '''A crafting station block that can access adjacent inventories and integrates with JEI.'''
+
+[[dependencies.craftingstation]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neoforge_loader_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.craftingstation]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.1,26.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.craftingstation]]
+modId = "jei"
+type = "optional"
+versionRange = "[29.0,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.craftingstation]]
+modId = "craftingtweaks"
+type = "optional"
+versionRange = "[26.0,)"
+ordering = "AFTER"
+side = "BOTH"

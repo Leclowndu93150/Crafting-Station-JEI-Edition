@@ -66,4 +66,16 @@ prism {
             }
         }
     }
+
+    version("26.1.1") {
+        neoforge {
+            loaderVersion = "26.1.1.10-beta"
+            loaderVersionRange = "[4,)"
+            dependencies {
+                implementation("curse.maven:jei-238222:7884734")
+                implementation("curse.maven:balm-531761:7842250")
+                implementation("curse.maven:crafting-tweaks-233071:7806683")
+            }
+        }
+    }
 }

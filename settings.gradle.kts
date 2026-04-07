@@ -11,7 +11,7 @@ pluginManagement {
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
-    id("dev.prism.settings") version "+"
+    id("dev.prism.settings") version "0.3.11"
 }
 
 rootProject.name = "crafting-station-jei"
@@ -21,6 +21,9 @@ prism {
         forge()
     }
     version("1.21.1") {
+        neoforge()
+    }
+    version("26.1.1") {
         neoforge()
     }
 }

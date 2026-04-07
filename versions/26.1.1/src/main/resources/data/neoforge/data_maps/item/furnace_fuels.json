@@ -1,0 +1,10 @@
+{
+  "values": {
+    "craftingstation:crafting_station": {
+      "burn_time": 300
+    },
+    "craftingstation:crafting_station_slab": {
+      "burn_time": 150
+    }
+  }
+}
