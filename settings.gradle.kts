@@ -11,7 +11,7 @@ pluginManagement {
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
-    id("dev.prism.settings") version "0.3.11"
+    id("dev.prism.settings") version "+"
 }
 
 rootProject.name = "crafting-station-jei"

@@ -33,7 +33,7 @@ prism {
         }
 
         dependencies {
-            optional("jei")
+            requires("jei")
             optional("polymorph")
             optional("crafting-tweaks")
         }
