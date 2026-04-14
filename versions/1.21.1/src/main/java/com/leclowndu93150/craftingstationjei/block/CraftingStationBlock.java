@@ -1,6 +1,7 @@
 package com.leclowndu93150.craftingstationjei.block;
 
 import com.leclowndu93150.craftingstationjei.blockentity.CraftingStationBlockEntity;
+import com.leclowndu93150.craftingstationjei.menu.CraftingStationMenu;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -69,7 +70,10 @@ public class CraftingStationBlock extends BaseEntityBlock {
         if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof CraftingStationBlockEntity csbe) {
-                serverPlayer.openMenu(csbe, pos);
+                serverPlayer.openMenu(csbe, buf -> {
+                    buf.writeBlockPos(pos);
+                    CraftingStationMenu.writeSideSlotCounts(buf, level, pos);
+                });
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);

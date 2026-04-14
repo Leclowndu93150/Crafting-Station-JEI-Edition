@@ -6,6 +6,13 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 public class SideContainerWrapper {
 
+    @FunctionalInterface
+    public interface SetStackHook {
+        boolean apply(IItemHandler handler, int slot, ItemStack stack);
+    }
+
+    public static SetStackHook EXTRA_SET_STACK = (h, s, st) -> false;
+
     private final IItemHandler handler;
 
     public static final SideContainerWrapper EMPTY = new SideContainerWrapper(new IItemHandler() {
@@ -32,7 +39,9 @@ public class SideContainerWrapper {
     public void setStack(int slot, ItemStack stack) {
         if (handler instanceof IItemHandlerModifiable modifiable) {
             modifiable.setStackInSlot(slot, stack);
+            return;
         }
+        EXTRA_SET_STACK.apply(handler, slot, stack);
     }
 
     public ItemStack removeStack(int slot, int count) {

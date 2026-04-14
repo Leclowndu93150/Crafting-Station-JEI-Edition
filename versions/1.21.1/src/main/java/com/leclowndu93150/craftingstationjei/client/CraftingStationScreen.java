@@ -86,12 +86,8 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
             currentScroll = 0;
             return;
         }
-        SideContainerWrapper handler = menu.getCurrentHandler();
-        if (handler == null) {
-            currentScroll = 0;
-            return;
-        }
-        int maxOffset = handler.getSlotCount() - VISIBLE_SLOTS;
+        int totalSlots = menu.subContainerSize();
+        int maxOffset = totalSlots - VISIBLE_SLOTS;
         if (maxOffset <= 0) {
             currentScroll = 0;
         } else {
@@ -109,7 +105,7 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
         if (this.menu.hasSideContainers()) {
             stack.blit(SECONDARY_GUI_TEXTURE, i - 130, j, 0, 0, this.imageWidth, this.imageHeight + 18);
 
-            int totalSlots = menu.getCurrentHandler() != null ? menu.getCurrentHandler().getSlotCount() : 0;
+            int totalSlots = menu.subContainerSize();
             int slotsToDraw = Math.min(totalSlots, VISIBLE_SLOTS);
 
             int offset = hasScrollbar() ? -126 : -118;

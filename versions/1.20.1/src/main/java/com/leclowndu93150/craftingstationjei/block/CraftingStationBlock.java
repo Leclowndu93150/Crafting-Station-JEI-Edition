@@ -2,6 +2,7 @@ package com.leclowndu93150.craftingstationjei.block;
 
 import com.leclowndu93150.craftingstationjei.blockentity.CraftingStationBlockEntity;
 import com.leclowndu93150.craftingstationjei.init.ModBlockEntityTypes;
+import com.leclowndu93150.craftingstationjei.menu.CraftingStationMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -68,7 +69,10 @@ public class CraftingStationBlock extends Block implements EntityBlock {
         }
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof CraftingStationBlockEntity csbe) {
-            NetworkHooks.openScreen((ServerPlayer) player, csbe, pos);
+            NetworkHooks.openScreen((ServerPlayer) player, csbe, buf -> {
+                buf.writeBlockPos(pos);
+                CraftingStationMenu.writeSideSlotCounts(buf, level, pos);
+            });
         }
         return InteractionResult.CONSUME;
     }

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.leclowndu93150"
-version = "2.0.0"
+version = "2.1.0"
 
 prism {
     metadata {
@@ -20,7 +20,7 @@ prism {
 
     publishing {
         type = STABLE
-        changelog = "Added Crafting Tweaks and Polymorph Support."
+        changelog = "Added Functional Storage support. Items are now rendered on top of the station. Fixed dupe bug."
 
         curseforge {
             accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
@@ -36,6 +36,7 @@ prism {
             requires("jei")
             optional("polymorph")
             optional("crafting-tweaks")
+            optional("functional-storage")
         }
     }
 
@@ -49,6 +50,8 @@ prism {
                 modCompileOnly("curse.maven:polymorph-388800:6450982")
                 modImplementation("curse.maven:balm-531761:7420617")
                 modImplementation("curse.maven:crafting-tweaks-233071:7454498")
+                modImplementation("curse.maven:titanium-287342:5468426")
+                modImplementation("curse.maven:functional-storage-556861:6702553")
             }
         }
     }
@@ -63,6 +66,8 @@ prism {
                 compileOnly("curse.maven:polymorph-388800:6794589")
                 implementation("curse.maven:balm-531761:7420963")
                 implementation("curse.maven:crafting-tweaks-233071:7530379")
+                implementation("curse.maven:titanium-287342:7662843")
+                implementation("curse.maven:functional-storage-556861:7061714")
             }
         }
     }

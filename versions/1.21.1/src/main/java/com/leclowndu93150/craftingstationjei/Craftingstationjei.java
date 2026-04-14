@@ -3,6 +3,7 @@ package com.leclowndu93150.craftingstationjei;
 import com.leclowndu93150.craftingstationjei.client.CraftingStationBlockEntityRenderer;
 import com.leclowndu93150.craftingstationjei.client.CraftingStationScreen;
 import com.leclowndu93150.craftingstationjei.compat.CraftingTweaksCompat;
+import com.leclowndu93150.craftingstationjei.compat.FunctionalStorageCompat;
 import com.leclowndu93150.craftingstationjei.init.ModBlockEntityTypes;
 import com.leclowndu93150.craftingstationjei.init.ModBlocks;
 import com.leclowndu93150.craftingstationjei.init.ModItems;
@@ -48,6 +49,9 @@ public class Craftingstationjei {
     private void commonSetup(final FMLCommonSetupEvent event) {
         if (ModList.get().isLoaded("craftingtweaks")) {
             CraftingTweaksCompat.init();
+        }
+        if (ModList.get().isLoaded("functionalstorage")) {
+            FunctionalStorageCompat.init();
         }
     }
 
