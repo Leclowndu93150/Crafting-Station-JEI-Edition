@@ -1,7 +1,16 @@
 {
   "variants": {
-      "type=bottom": { "model": "craftingstation:block/crafting_station_slab" },
-      "type=top": { "model": "craftingstation:block/crafting_station_slab_top" },
-      "type=double": { "model": "craftingstation:block/crafting_station_slab_double" }
-    }
+    "type=bottom,facing=north": { "model": "craftingstation:block/crafting_station_slab" },
+    "type=bottom,facing=east":  { "model": "craftingstation:block/crafting_station_slab", "y": 90 },
+    "type=bottom,facing=south": { "model": "craftingstation:block/crafting_station_slab", "y": 180 },
+    "type=bottom,facing=west":  { "model": "craftingstation:block/crafting_station_slab", "y": 270 },
+    "type=top,facing=north":    { "model": "craftingstation:block/crafting_station_slab_top" },
+    "type=top,facing=east":     { "model": "craftingstation:block/crafting_station_slab_top", "y": 90 },
+    "type=top,facing=south":    { "model": "craftingstation:block/crafting_station_slab_top", "y": 180 },
+    "type=top,facing=west":     { "model": "craftingstation:block/crafting_station_slab_top", "y": 270 },
+    "type=double,facing=north": { "model": "craftingstation:block/crafting_station_slab_double" },
+    "type=double,facing=east":  { "model": "craftingstation:block/crafting_station_slab_double", "y": 90 },
+    "type=double,facing=south": { "model": "craftingstation:block/crafting_station_slab_double", "y": 180 },
+    "type=double,facing=west":  { "model": "craftingstation:block/crafting_station_slab_double", "y": 270 }
+  }
 }

@@ -27,12 +27,26 @@ import javax.annotation.Nullable;
 
 public class CraftingStationBlockEntity extends BlockEntity implements MenuProvider {
 
-    private final SimpleContainer input = new SimpleContainer(9);
+    private final SimpleContainer input = new SimpleContainer(9) {
+        @Override
+        public void setChanged() {
+            super.setChanged();
+            onInputChanged();
+        }
+    };
     private Direction currentContainer = null;
     private Component customName = null;
 
     public CraftingStationBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntityTypes.CRAFTING_STATION.get(), pos, state);
+    }
+
+    private void onInputChanged() {
+        if (this.level != null && !this.level.isClientSide()) {
+            setChanged();
+            BlockState s = this.level.getBlockState(this.worldPosition);
+            this.level.sendBlockUpdated(this.worldPosition, s, s, 3);
+        }
     }
 
     public SimpleContainer getInput() {

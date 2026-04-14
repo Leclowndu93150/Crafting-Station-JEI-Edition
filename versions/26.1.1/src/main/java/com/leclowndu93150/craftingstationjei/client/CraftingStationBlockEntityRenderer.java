@@ -1,8 +1,12 @@
 package com.leclowndu93150.craftingstationjei.client;
 
+import com.leclowndu93150.craftingstationjei.block.CraftingStationBlock;
+import com.leclowndu93150.craftingstationjei.block.CraftingStationSlabBlock;
 import com.leclowndu93150.craftingstationjei.blockentity.CraftingStationBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import net.minecraft.core.Direction;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -14,6 +18,9 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
@@ -48,6 +55,27 @@ public class CraftingStationBlockEntityRenderer implements BlockEntityRenderer<C
             }
             state.items.add(itemState);
         }
+
+        BlockState blockState = blockEntity.getBlockState();
+        state.topY = 1.0;
+        if (blockState.getBlock() instanceof SlabBlock) {
+            SlabType type = blockState.getValue(SlabBlock.TYPE);
+            if (type == SlabType.BOTTOM) {
+                state.topY = 0.5;
+            }
+        }
+
+        Direction facing = Direction.NORTH;
+        if (blockState.hasProperty(CraftingStationBlock.FACING)) {
+            facing = blockState.getValue(CraftingStationBlock.FACING);
+        } else if (blockState.hasProperty(CraftingStationSlabBlock.FACING)) {
+            facing = blockState.getValue(CraftingStationSlabBlock.FACING);
+        }
+        state.yRot = -facing.toYRot();
+
+        if (blockEntity.getLevel() != null) {
+            state.lightCoords = LevelRenderer.getLightCoords(blockEntity.getLevel(), blockEntity.getBlockPos().above());
+        }
     }
 
     @Override
@@ -55,12 +83,20 @@ public class CraftingStationBlockEntityRenderer implements BlockEntityRenderer<C
         for (int i = 0; i < state.items.size(); i++) {
             ItemStackRenderState itemState = state.items.get(i);
             if (itemState.isEmpty()) continue;
+
+            boolean blockItem = itemState.usesBlockLight();
+
             poseStack.pushPose();
-            float x = 0.22f + (i % 3) * 0.28f;
-            float z = 0.22f + (i / 3) * 0.28f;
-            poseStack.translate(x, 1.02, z);
-            poseStack.mulPose(Axis.XP.rotationDegrees(90));
-            poseStack.scale(0.22f, 0.22f, 0.22f);
+            poseStack.translate(0.5, 0.0, 0.5);
+            poseStack.mulPose(Axis.YP.rotationDegrees(state.yRot));
+            poseStack.translate((i % 3) * 3.0 / 16.0 + 0.3125 - 0.5,
+                    state.topY + (blockItem ? 0.0625 : 0.005),
+                    (i / 3) * 3.0 / 16.0 + 0.3125 - 0.5);
+            poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
+            float scale = blockItem ? 0.25F : 0.175F;
+            poseStack.scale(scale, scale, scale);
+
             itemState.submit(poseStack, submitNodeCollector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
             poseStack.popPose();
         }
@@ -68,5 +104,7 @@ public class CraftingStationBlockEntityRenderer implements BlockEntityRenderer<C
 
     public static class RenderState extends BlockEntityRenderState {
         public List<ItemStackRenderState> items = Collections.emptyList();
+        public double topY = 1.02;
+        public float yRot = 0.0F;
     }
 }

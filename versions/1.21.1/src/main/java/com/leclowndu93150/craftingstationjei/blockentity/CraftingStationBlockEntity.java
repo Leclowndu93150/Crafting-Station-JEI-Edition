@@ -29,6 +29,13 @@ public class CraftingStationBlockEntity extends BlockEntity implements MenuProvi
 
     public CraftingStationBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntityTypes.CRAFTING_STATION.get(), pos, state);
+        this.input.addListener(container -> {
+            if (this.level != null && !this.level.isClientSide) {
+                setChanged();
+                BlockState s = this.level.getBlockState(this.worldPosition);
+                this.level.sendBlockUpdated(this.worldPosition, s, s, 3);
+            }
+        });
     }
 
     public SimpleContainer getInput() {
