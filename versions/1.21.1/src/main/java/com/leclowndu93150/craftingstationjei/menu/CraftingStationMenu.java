@@ -11,6 +11,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -329,7 +330,8 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         }
         craftResult.setItem(0, result);
         setRemoteSlot(0, result);
-        broadcastFullState();
+        serverPlayer.connection.send(new ClientboundContainerSetSlotPacket(
+                this.containerId, this.incrementStateId(), 0, result));
     }
 
     public SideContainerWrapper getCurrentHandler() {

@@ -127,7 +127,15 @@ public class CraftingStationScreen extends AbstractContainerScreen<CraftingStati
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int scroll) {
-        this.isScrolling = this.hasScrollbar();
+        if (this.hasScrollbar()) {
+            int scrollLeft = this.leftPos - 16;
+            int scrollRight = scrollLeft + 14;
+            int scrollTop = this.topPos + 16;
+            int scrollBottom = scrollTop + 112;
+            if (mouseX >= scrollLeft && mouseX <= scrollRight && mouseY >= scrollTop && mouseY <= scrollBottom) {
+                this.isScrolling = true;
+            }
+        }
         return super.mouseClicked(mouseX, mouseY, scroll);
     }
 
