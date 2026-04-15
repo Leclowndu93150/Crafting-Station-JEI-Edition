@@ -686,10 +686,14 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         public boolean mayPlace(ItemStack stack) {
             if (craftingStationMenu.useClientCacheFor(direction)) {
                 int size = craftingStationMenu.getSlotCountFor(direction);
-                return slotIndex >= 0 && slotIndex < size;
+                if (slotIndex < 0 || slotIndex >= size) return false;
+                ItemStack existing = craftingStationMenu.getClientCache(direction, size).get(slotIndex);
+                return existing.isEmpty() || ItemStack.isSameItemSameComponents(existing, stack);
             }
             SideContainerWrapper handler = getHandler();
-            return craftingStationMenu.isValidSideSlot(handler, slotIndex) && handler.valid(slotIndex);
+            if (!craftingStationMenu.isValidSideSlot(handler, slotIndex) || !handler.valid(slotIndex)) return false;
+            ItemStack existing = handler.getStack(slotIndex);
+            return existing.isEmpty() || ItemStack.isSameItemSameComponents(existing, stack);
         }
 
         @Override
@@ -701,10 +705,15 @@ public class CraftingStationMenu extends AbstractContainerMenu {
                 return;
             }
             SideContainerWrapper handler = getHandler();
-            if (craftingStationMenu.isValidSideSlot(handler, slotIndex)) {
-                handler.setStack(slotIndex, stack);
-                craftingStationMenu.flushAdjacentUpdate(direction);
+            if (!craftingStationMenu.isValidSideSlot(handler, slotIndex)) return;
+            if (!(handler.getHandler() instanceof net.neoforged.neoforge.items.IItemHandlerModifiable)) {
+                ItemStack existing = handler.getStack(slotIndex);
+                if (!existing.isEmpty() && !stack.isEmpty() && !ItemStack.isSameItemSameComponents(existing, stack)) {
+                    return;
+                }
             }
+            handler.setStack(slotIndex, stack);
+            craftingStationMenu.flushAdjacentUpdate(direction);
         }
 
         @Override
