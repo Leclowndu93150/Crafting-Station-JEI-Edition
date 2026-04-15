@@ -13,6 +13,13 @@ public class SideContainerWrapper {
 
     public static SetStackHook EXTRA_SET_STACK = (h, s, st) -> false;
 
+    @FunctionalInterface
+    public interface PredictiveOnlyHandlerHook {
+        boolean test(IItemHandler handler);
+    }
+
+    public static PredictiveOnlyHandlerHook FORCE_CLIENT_CACHE = h -> false;
+
     private final IItemHandler handler;
 
     public static final SideContainerWrapper EMPTY = new SideContainerWrapper(new IItemHandler() {

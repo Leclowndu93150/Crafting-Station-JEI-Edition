@@ -229,7 +229,9 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         Integer override = clientSlotCountOverride.get(direction);
         if (override == null) return false;
         SideContainerWrapper wrapper = getHandlerFor(direction);
-        return wrapper == null || wrapper.getSlotCount() < override;
+        if (wrapper == null) return true;
+        if (wrapper.getSlotCount() < override) return true;
+        return SideContainerWrapper.FORCE_CLIENT_CACHE.test(wrapper.getHandler());
     }
 
     private NonNullList<ItemStack> getClientCache(Direction direction, int size) {
@@ -432,10 +434,64 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     @Override
+    private ItemStack sideQuickMove(Player player, SideContainerSlot sideSlot) {
+        Direction dir = sideSlot.getDirection();
+        int slotIdx = sideSlot.getActualSlot();
+
+        if (useClientCacheFor(dir)) {
+            int size = getSlotCountFor(dir);
+            if (slotIdx < 0 || slotIdx >= size) return ItemStack.EMPTY;
+            NonNullList<ItemStack> cache = getClientCache(dir, size);
+            ItemStack cur = cache.get(slotIdx);
+            if (cur.isEmpty()) return ItemStack.EMPTY;
+            int take = Math.min(cur.getCount(), cur.getMaxStackSize());
+            ItemStack moved = cur.copyWithCount(take);
+            if (!moveItemStackTo(moved, playerInventoryStartIndex, playerInventoryStartIndex + 36, false)) {
+                return ItemStack.EMPTY;
+            }
+            int actuallyMoved = take - moved.getCount();
+            if (actuallyMoved <= 0) return ItemStack.EMPTY;
+            cur.shrink(actuallyMoved);
+            return cur.copyWithCount(actuallyMoved);
+        }
+
+        SideContainerWrapper wrapper = getHandlerFor(dir);
+        if (wrapper == null) return ItemStack.EMPTY;
+
+        ItemStack peek = wrapper.getStack(slotIdx);
+        if (peek.isEmpty()) return ItemStack.EMPTY;
+        int take = Math.min(peek.getCount(), peek.getMaxStackSize());
+        ItemStack pulled = wrapper.removeStack(slotIdx, take);
+        if (pulled.isEmpty()) return ItemStack.EMPTY;
+
+        int beforeCount = pulled.getCount();
+        if (!moveItemStackTo(pulled, playerInventoryStartIndex, playerInventoryStartIndex + 36, false)) {
+            ItemStack leftover = wrapper.insert(slotIdx, pulled, false);
+            if (!leftover.isEmpty()) {
+                player.drop(leftover, false);
+            }
+            return ItemStack.EMPTY;
+        }
+        if (!pulled.isEmpty()) {
+            ItemStack leftover = wrapper.insert(slotIdx, pulled, false);
+            if (!leftover.isEmpty()) {
+                player.drop(leftover, false);
+            }
+        }
+        flushAdjacentUpdate(dir);
+        int moved = beforeCount - pulled.getCount();
+        return peek.copyWithCount(moved);
+    }
+
+    @Override
     public ItemStack quickMoveStack(Player player, int index) {
         ItemStack copy = ItemStack.EMPTY;
         Slot slot = slots.get(index);
         if (slot == null || !slot.hasItem()) return copy;
+
+        if (slot instanceof SideContainerSlot sideSlot && index >= sideContainerStartIndex && index < playerInventoryStartIndex) {
+            return sideQuickMove(player, sideSlot);
+        }
 
         ItemStack slotStack = slot.getItem();
         copy = slotStack.copy();
