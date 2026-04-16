@@ -74,6 +74,7 @@ prism {
 
     version("26.1.1") {
         minecraftVersions("26.1","26.1.1","26.1.2")
+        version = "2.1.2"
         neoforge {
             loaderVersion = "26.1.1.10-beta"
             loaderVersionRange = "[4,)"
