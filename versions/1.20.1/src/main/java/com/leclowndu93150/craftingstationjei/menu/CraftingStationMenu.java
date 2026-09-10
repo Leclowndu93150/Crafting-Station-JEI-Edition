@@ -19,6 +19,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.ResultContainer;
 import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
@@ -65,6 +66,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     private final Map<Direction, NonNullList<ItemStack>> lastSyncedStacks = new HashMap<>();
     private final Map<Direction, Integer> clientSlotCountOverride = new EnumMap<>(Direction.class);
     private final Map<Direction, NonNullList<ItemStack>> clientDisplayCache = new EnumMap<>(Direction.class);
+    private boolean skipSideSlotWrites;
 
     public CraftingStationMenu(int id, Inventory inv, FriendlyByteBuf buf) {
         this(id, inv, new SimpleContainer(9), buf.readBlockPos(), readSideSlotCounts(buf));
@@ -255,12 +257,18 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         }
     }
 
+    public int getMaxFirstSlot() {
+        Direction selectedDir = getSelectedContainer();
+        int totalSlots = selectedDir != null ? getSlotCountFor(selectedDir) : 0;
+        int rows = (totalSlots + SLOTS_PER_ROW - 1) / SLOTS_PER_ROW;
+        return Math.max(0, rows - VISIBLE_SLOTS / SLOTS_PER_ROW) * SLOTS_PER_ROW;
+    }
+
     public void refreshSideSlots() {
         Direction selectedDir = getSelectedContainer();
         int totalSlots = selectedDir != null ? getSlotCountFor(selectedDir) : 0;
 
-        int maxOffset = Math.max(0, totalSlots - VISIBLE_SLOTS);
-        this.firstSlot = Mth.clamp(this.firstSlot, 0, maxOffset);
+        this.firstSlot = Mth.clamp(this.firstSlot, 0, getMaxFirstSlot());
 
         int available = Math.max(0, totalSlots - this.firstSlot);
         visibleSideSlotCount = Math.min(available, VISIBLE_SLOTS);
@@ -371,7 +379,6 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     public void setCurrentContainer(Direction dir) {
         this.currentContainer = dir;
         this.firstSlot = 0;
-        this.lastSyncedStacks.clear();
         if (tileEntity != null && !world.isClientSide) {
             tileEntity.setCurrentContainer(dir);
         }
@@ -383,13 +390,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             this.firstSlot = 0;
             return;
         }
-        int totalSlots = getSlotCountFor(currentContainer);
-        int maxOffset = Math.max(0, totalSlots - VISIBLE_SLOTS);
-        int newFirst = Mth.clamp(firstSlot, 0, maxOffset);
-        if (newFirst != this.firstSlot) {
-            this.lastSyncedStacks.clear();
-        }
-        this.firstSlot = newFirst;
+        this.firstSlot = Mth.clamp(firstSlot - Math.floorMod(firstSlot, SLOTS_PER_ROW), 0, getMaxFirstSlot());
         refreshSideSlots();
     }
 
@@ -423,6 +424,36 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             }
         }
         return true;
+    }
+
+    @Override
+    public void clicked(int slotId, int button, ClickType clickType, Player player) {
+        if (clickType == ClickType.SWAP && slotId >= 0 && slotId < slots.size()
+                && slots.get(slotId) instanceof SideContainerSlot sideSlot) {
+            ItemStack slotStack = sideSlot.getItem();
+            if (slotStack.getCount() > slotStack.getMaxStackSize()) {
+                Inventory inventory = player.getInventory();
+                if (inventory.getItem(button).isEmpty()) {
+                    inventory.setItem(button, sideSlot.safeTake(slotStack.getMaxStackSize(), Integer.MAX_VALUE, player));
+                }
+                return;
+            }
+        }
+        super.clicked(slotId, button, clickType, player);
+    }
+
+    @Override
+    public void setItem(int slotId, int stateId, ItemStack stack) {
+        skipSideSlotWrites = true;
+        super.setItem(slotId, stateId, stack);
+        skipSideSlotWrites = false;
+    }
+
+    @Override
+    public void initializeContents(int stateId, List<ItemStack> items, ItemStack carried) {
+        skipSideSlotWrites = true;
+        super.initializeContents(stateId, items, carried);
+        skipSideSlotWrites = false;
     }
 
     @Override
@@ -562,26 +593,21 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     private void syncSideContainers() {
-        Direction selected = getSelectedContainer();
-        if (selected == null) return;
-        SideContainerWrapper wrapper = getHandlerFor(selected);
-        if (wrapper == null) return;
-        int slotCount = wrapper.getSlotCount();
-        NonNullList<ItemStack> lastSynced = lastSyncedStacks.computeIfAbsent(
-                selected, d -> NonNullList.withSize(slotCount, ItemStack.EMPTY));
-        if (lastSynced.size() != slotCount) {
-            lastSynced = NonNullList.withSize(slotCount, ItemStack.EMPTY);
-            lastSyncedStacks.put(selected, lastSynced);
-        }
-        int windowStart = firstSlot;
-        int windowEnd = Math.min(slotCount, firstSlot + VISIBLE_SLOTS);
-        for (int i = windowStart; i < windowEnd; i++) {
-            ItemStack current = wrapper.getStack(i);
-            ItemStack previous = lastSynced.get(i);
-            if (!ItemStack.matches(current, previous)) {
+        for (Direction direction : blockEntityMap.keySet()) {
+            SideContainerWrapper wrapper = getHandlerFor(direction);
+            if (wrapper == null) continue;
+            int slotCount = wrapper.getSlotCount();
+            NonNullList<ItemStack> lastSynced = lastSyncedStacks.get(direction);
+            if (lastSynced == null || lastSynced.size() != slotCount) {
+                lastSynced = NonNullList.withSize(slotCount, ItemStack.EMPTY);
+                lastSyncedStacks.put(direction, lastSynced);
+            }
+            for (int i = 0; i < slotCount; i++) {
+                ItemStack current = wrapper.getStack(i);
+                if (ItemStack.matches(current, lastSynced.get(i))) continue;
                 PacketHandler.CHANNEL.send(
                         PacketDistributor.PLAYER.with(() -> (ServerPlayer) player),
-                        new S2CSideSetSideContainerSlot(current, selected, i));
+                        new S2CSideSetSideContainerSlot(current, direction, i));
                 lastSynced.set(i, current.copy());
             }
         }
@@ -595,7 +621,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             return;
         }
         SideContainerWrapper wrapper = getHandlerFor(direction);
-        if (wrapper != null && direction != getSelectedContainer()) {
+        if (wrapper != null) {
             wrapper.setStack(slot, stack);
         }
     }
@@ -658,10 +684,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
                 if (!craftingStationMenu.isValidSideSlot(handler, slotIndex)) return ItemStack.EMPTY;
                 raw = handler.getStack(slotIndex);
             }
-            if (raw.isEmpty()) return ItemStack.EMPTY;
-            int cap = raw.getMaxStackSize();
-            if (raw.getCount() <= cap) return raw;
-            return raw.copyWithCount(cap);
+            return raw;
         }
 
         @Override
@@ -672,13 +695,15 @@ public class CraftingStationMenu extends AbstractContainerMenu {
                 NonNullList<ItemStack> cache = craftingStationMenu.getClientCache(direction, size);
                 ItemStack cur = cache.get(slotIndex);
                 ItemStack taken = cur.copy();
-                taken.setCount(Math.min(amount, cur.getCount()));
+                taken.setCount(Math.min(Math.min(amount, cur.getMaxStackSize()), cur.getCount()));
                 cur.shrink(taken.getCount());
                 return taken;
             }
             SideContainerWrapper handler = getHandler();
             if (!craftingStationMenu.isValidSideSlot(handler, slotIndex)) return ItemStack.EMPTY;
-            ItemStack result = handler.removeStack(slotIndex, amount);
+            ItemStack existing = handler.getStack(slotIndex);
+            if (existing.isEmpty()) return ItemStack.EMPTY;
+            ItemStack result = handler.removeStack(slotIndex, Math.min(amount, existing.getMaxStackSize()));
             craftingStationMenu.flushAdjacentUpdate(direction);
             return result;
         }
@@ -699,6 +724,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
         @Override
         public void set(ItemStack stack) {
+            if (craftingStationMenu.skipSideSlotWrites) return;
             if (craftingStationMenu.useClientCacheFor(direction)) {
                 int size = craftingStationMenu.getSlotCountFor(direction);
                 if (slotIndex < 0 || slotIndex >= size) return;
@@ -707,14 +733,26 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             }
             SideContainerWrapper handler = getHandler();
             if (!craftingStationMenu.isValidSideSlot(handler, slotIndex)) return;
-            if (!(handler.getHandler() instanceof net.minecraftforge.items.IItemHandlerModifiable)) {
-                ItemStack existing = handler.getStack(slotIndex);
-                if (!existing.isEmpty() && !stack.isEmpty() && !ItemStack.isSameItemSameTags(existing, stack)) {
-                    return;
+            if (!handler.setStack(slotIndex, stack)) {
+                applyDelta(handler, stack);
+            }
+            craftingStationMenu.flushAdjacentUpdate(direction);
+        }
+
+        private void applyDelta(SideContainerWrapper handler, ItemStack target) {
+            ItemStack existing = handler.getStack(slotIndex);
+            if (!existing.isEmpty() && (target.isEmpty() || !ItemStack.isSameItemSameTags(existing, target))) {
+                while (!existing.isEmpty() && !handler.removeStack(slotIndex, existing.getCount()).isEmpty()) {
+                    existing = handler.getStack(slotIndex);
                 }
             }
-            handler.setStack(slotIndex, stack);
-            craftingStationMenu.flushAdjacentUpdate(direction);
+            if (target.isEmpty()) return;
+            int delta = target.getCount() - handler.getStack(slotIndex).getCount();
+            if (delta > 0) {
+                handler.insert(slotIndex, target.copyWithCount(delta), false);
+            } else if (delta < 0) {
+                handler.removeStack(slotIndex, -delta);
+            }
         }
 
         @Override

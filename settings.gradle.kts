@@ -17,6 +17,9 @@ plugins {
 rootProject.name = "crafting-station-jei"
 
 prism {
+    version("1.19.2") {
+        forge()
+    }
     version("1.20.1") {
         forge()
     }

@@ -63,6 +63,15 @@ public class SideContainerWrapper {
         return ItemStack.EMPTY;
     }
 
+    public ItemStack insert(int slot, ItemStack stack, boolean simulate) {
+        if (stack.isEmpty() || slot < 0 || slot >= handler.size()) return stack;
+        try (Transaction tx = Transaction.openRoot()) {
+            int inserted = handler.insert(slot, ItemResource.of(stack), stack.getCount(), tx);
+            if (!simulate) tx.commit();
+            return inserted >= stack.getCount() ? ItemStack.EMPTY : stack.copyWithCount(stack.getCount() - inserted);
+        }
+    }
+
     public int getMaxStackSize(int slot) {
         if (slot < 0 || slot >= handler.size()) return 0;
         ItemResource resource = handler.getResource(slot);

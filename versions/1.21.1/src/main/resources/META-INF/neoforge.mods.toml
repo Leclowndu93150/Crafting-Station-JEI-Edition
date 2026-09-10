@@ -43,3 +43,10 @@ type = "optional"
 versionRange = "[21.0,)"
 ordering = "AFTER"
 side = "BOTH"
+
+[[dependencies.craftingstation]]
+modId = "emi"
+type = "optional"
+versionRange = "[1.1,)"
+ordering = "AFTER"
+side = "BOTH"

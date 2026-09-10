@@ -18,6 +18,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.ResultContainer;
 import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
@@ -155,12 +156,18 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         }
     }
 
+    public int getMaxFirstSlot() {
+        SideContainerWrapper handler = getCurrentHandler();
+        int totalSlots = handler != null ? handler.getSlotCount() : 0;
+        int rows = (totalSlots + SLOTS_PER_ROW - 1) / SLOTS_PER_ROW;
+        return Math.max(0, rows - VISIBLE_SLOTS / SLOTS_PER_ROW) * SLOTS_PER_ROW;
+    }
+
     public void refreshSideSlots() {
         SideContainerWrapper handler = getCurrentHandler();
         int totalSlots = handler != null ? handler.getSlotCount() : 0;
 
-        int maxOffset = Math.max(0, totalSlots - VISIBLE_SLOTS);
-        this.firstSlot = Mth.clamp(this.firstSlot, 0, maxOffset);
+        this.firstSlot = Mth.clamp(this.firstSlot, 0, getMaxFirstSlot());
 
         int available = Math.max(0, totalSlots - this.firstSlot);
         visibleSideSlotCount = Math.min(available, VISIBLE_SLOTS);
@@ -287,8 +294,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             this.firstSlot = 0;
             return;
         }
-        int maxOffset = Math.max(0, handler.getSlotCount() - VISIBLE_SLOTS);
-        this.firstSlot = Mth.clamp(firstSlot, 0, maxOffset);
+        this.firstSlot = Mth.clamp(firstSlot - Math.floorMod(firstSlot, SLOTS_PER_ROW), 0, getMaxFirstSlot());
         refreshSideSlots();
     }
 
@@ -325,6 +331,45 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     }
 
     @Override
+    public void clicked(int slotId, int button, ContainerInput input, Player player) {
+        if (input == ContainerInput.SWAP && slotId >= 0 && slotId < slots.size()
+                && slots.get(slotId) instanceof SideContainerSlot sideSlot) {
+            ItemStack slotStack = sideSlot.getItem();
+            if (slotStack.getCount() > slotStack.getMaxStackSize()) {
+                Inventory inventory = player.getInventory();
+                if (inventory.getItem(button).isEmpty()) {
+                    inventory.setItem(button, sideSlot.safeTake(slotStack.getMaxStackSize(), Integer.MAX_VALUE, player));
+                }
+                return;
+            }
+        }
+        super.clicked(slotId, button, input, player);
+    }
+
+    private ItemStack sideQuickMove(Player player, SideContainerSlot sideSlot) {
+        SideContainerWrapper wrapper = getHandlerFor(sideSlot.getDirection());
+        if (wrapper == null) return ItemStack.EMPTY;
+        int slotIdx = sideSlot.getActualSlot();
+
+        ItemStack peek = wrapper.getStack(slotIdx);
+        if (peek.isEmpty()) return ItemStack.EMPTY;
+        int take = Math.min(peek.getCount(), peek.getMaxStackSize());
+        ItemStack pulled = wrapper.removeStack(slotIdx, take);
+        if (pulled.isEmpty()) return ItemStack.EMPTY;
+
+        int beforeCount = pulled.getCount();
+        boolean movedAny = moveItemStackTo(pulled, playerInventoryStartIndex, playerInventoryStartIndex + 36, false);
+        if (!pulled.isEmpty()) {
+            ItemStack leftover = wrapper.insert(slotIdx, pulled, false);
+            if (!leftover.isEmpty()) {
+                player.drop(leftover, false);
+            }
+        }
+        if (!movedAny) return ItemStack.EMPTY;
+        return peek.copyWithCount(beforeCount - pulled.getCount());
+    }
+
+    @Override
     public void removed(Player player) {
         super.removed(player);
         if (!player.level().isClientSide() && tileEntity != null) {
@@ -337,6 +382,10 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         ItemStack copy = ItemStack.EMPTY;
         Slot slot = slots.get(index);
         if (slot == null || !slot.hasItem()) return copy;
+
+        if (slot instanceof SideContainerSlot sideSlot) {
+            return sideQuickMove(player, sideSlot);
+        }
 
         ItemStack slotStack = slot.getItem();
         copy = slotStack.copy();
@@ -481,7 +530,9 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         public ItemStack remove(int amount) {
             SideContainerWrapper handler = getHandler();
             if (!craftingStationMenu.isValidSideSlot(handler, slotIndex)) return ItemStack.EMPTY;
-            return handler.removeStack(slotIndex, amount);
+            ItemStack existing = handler.getStack(slotIndex);
+            if (existing.isEmpty()) return ItemStack.EMPTY;
+            return handler.removeStack(slotIndex, Math.min(amount, existing.getMaxStackSize()));
         }
 
         @Override

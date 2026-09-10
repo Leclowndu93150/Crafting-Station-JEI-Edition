@@ -43,12 +43,12 @@ public class SideContainerWrapper {
         return handler.getStackInSlot(slot);
     }
 
-    public void setStack(int slot, ItemStack stack) {
+    public boolean setStack(int slot, ItemStack stack) {
         if (handler instanceof IItemHandlerModifiable modifiable) {
             modifiable.setStackInSlot(slot, stack);
-            return;
+            return true;
         }
-        EXTRA_SET_STACK.apply(handler, slot, stack);
+        return EXTRA_SET_STACK.apply(handler, slot, stack);
     }
 
     public ItemStack removeStack(int slot, int count) {
