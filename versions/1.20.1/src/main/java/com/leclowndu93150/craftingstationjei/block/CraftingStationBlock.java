@@ -71,7 +71,7 @@ public class CraftingStationBlock extends Block implements EntityBlock {
         if (be instanceof CraftingStationBlockEntity csbe) {
             NetworkHooks.openScreen((ServerPlayer) player, csbe, buf -> {
                 buf.writeBlockPos(pos);
-                CraftingStationMenu.writeSideSlotCounts(buf, level, pos);
+                CraftingStationMenu.writeSideSlotCounts(buf, level, pos, player);
             });
         }
         return InteractionResult.CONSUME;

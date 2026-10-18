@@ -55,6 +55,10 @@ public class SideContainerWrapper {
         return handler.extractItem(slot, count, false);
     }
 
+    public boolean canExtract(int slot) {
+        return !handler.extractItem(slot, 1, true).isEmpty();
+    }
+
     public ItemStack insert(int slot, ItemStack stack, boolean simulate) {
         return handler.insertItem(slot, stack, simulate);
     }

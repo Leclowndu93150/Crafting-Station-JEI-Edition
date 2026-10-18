@@ -15,6 +15,7 @@ import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Container;
+import net.minecraft.world.Nameable;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -66,6 +67,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
     private final Map<Direction, NonNullList<ItemStack>> lastSyncedStacks = new HashMap<>();
     private final Map<Direction, Integer> clientSlotCountOverride = new EnumMap<>(Direction.class);
     private final Map<Direction, NonNullList<ItemStack>> clientDisplayCache = new EnumMap<>(Direction.class);
+    private final boolean serverDefinedSides;
     private boolean skipSideSlotWrites;
 
     public CraftingStationMenu(int id, Inventory inv, FriendlyByteBuf buf) {
@@ -88,6 +90,7 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         this.world = player.level;
         this.tileEntity = (CraftingStationBlockEntity) world.getBlockEntity(pos);
         this.craftMatrix = new PersistantCraftingContainer(this, simpleContainer);
+        this.serverDefinedSides = slotCountOverrides != null;
         if (slotCountOverrides != null) {
             this.clientSlotCountOverride.putAll(slotCountOverrides);
         }
@@ -120,29 +123,13 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         }
     }
 
-    public static void writeSideSlotCounts(FriendlyByteBuf buf, Level level, BlockPos pos) {
-        Set<IItemHandler> seenHandlers = Collections.newSetFromMap(new IdentityHashMap<>());
-        List<Direction> dirs = new ArrayList<>();
-        List<Integer> counts = new ArrayList<>();
-        for (Direction dir : Direction.values()) {
-            BlockPos neighbor = pos.relative(dir);
-            BlockEntity te = level.getBlockEntity(neighbor);
-            if (te == null || te instanceof CraftingStationBlockEntity) continue;
-            var beType = ForgeRegistries.BLOCK_ENTITY_TYPES.getHolder(
-                    ForgeRegistries.BLOCK_ENTITY_TYPES.getKey(te.getType())).orElse(null);
-            if (beType != null && beType.is(Craftingstationjei.BLACKLISTED)) continue;
-            var cap = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
-            if (!cap.isPresent()) continue;
-            IItemHandler handler = cap.orElseThrow(IllegalStateException::new);
-            if (!seenHandlers.add(handler)) continue;
-            dirs.add(dir);
-            counts.add(handler.getSlots());
-        }
-        buf.writeVarInt(dirs.size());
-        for (int i = 0; i < dirs.size(); i++) {
-            buf.writeVarInt(dirs.get(i).get3DDataValue());
-            buf.writeVarInt(counts.get(i));
-        }
+    public static void writeSideSlotCounts(FriendlyByteBuf buf, Level level, BlockPos pos, Player player) {
+        Map<Direction, IItemHandler> handlers = findSideHandlers(level, pos, player);
+        buf.writeVarInt(handlers.size());
+        handlers.forEach((dir, handler) -> {
+            buf.writeVarInt(dir.get3DDataValue());
+            buf.writeVarInt(handler.getSlots());
+        });
     }
 
     private static Map<Direction, Integer> readSideSlotCounts(FriendlyByteBuf buf) {
@@ -156,53 +143,50 @@ public class CraftingStationMenu extends AbstractContainerMenu {
         return out;
     }
 
-    private void searchSideInventories() {
+    private static Map<Direction, IItemHandler> findSideHandlers(Level level, BlockPos pos, Player player) {
+        Map<Direction, IItemHandler> found = new EnumMap<>(Direction.class);
         Set<IItemHandler> seenHandlers = Collections.newSetFromMap(new IdentityHashMap<>());
         for (Direction dir : Direction.values()) {
             BlockPos neighbor = pos.relative(dir);
-            BlockEntity te = world.getBlockEntity(neighbor);
+            BlockEntity te = level.getBlockEntity(neighbor);
             if (te == null || te instanceof CraftingStationBlockEntity) continue;
-
             var beType = ForgeRegistries.BLOCK_ENTITY_TYPES.getHolder(
                     ForgeRegistries.BLOCK_ENTITY_TYPES.getKey(te.getType())).orElse(null);
             if (beType != null && beType.is(Craftingstationjei.BLACKLISTED)) continue;
             if (te instanceof Container container && !container.stillValid(player)) continue;
-
             var cap = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
-            if (cap.isPresent()) {
-                IItemHandler handler = cap.orElseThrow(IllegalStateException::new);
-                if (!seenHandlers.add(handler)) continue;
-                blockEntityMap.put(dir, te);
-                BlockState neighborState = world.getBlockState(neighbor);
-                ItemStack displayStack = neighborState.getBlock().getCloneItemStack(world, neighbor, neighborState);
-                if (displayStack.isEmpty()) {
-                    displayStack = new ItemStack(neighborState.getBlock());
-                }
-                blocks.put(dir, displayStack);
-                containerNames.put(dir, te instanceof net.minecraft.world.Nameable nameable
-                        ? nameable.getDisplayName() : Component.translatable(neighborState.getBlock().getDescriptionId()));
-            }
+            if (!cap.isPresent()) continue;
+            IItemHandler handler = cap.orElseThrow(IllegalStateException::new);
+            if (!seenHandlers.add(handler)) continue;
+            found.put(dir, handler);
         }
-        // On client, the server may have reported additional (handler-zero-slots) side inventories
-        // e.g. FunctionalStorage controllers whose ConnectedDrawers don't populate client-side.
-        if (world.isClientSide) {
+        return found;
+    }
+
+    private void searchSideInventories() {
+        if (world.isClientSide && serverDefinedSides) {
             for (Direction dir : clientSlotCountOverride.keySet()) {
-                if (!blockEntityMap.containsKey(dir)) {
-                    BlockPos neighbor = pos.relative(dir);
-                    BlockEntity te = world.getBlockEntity(neighbor);
-                    if (te == null) continue;
-                    blockEntityMap.put(dir, te);
-                    BlockState neighborState = world.getBlockState(neighbor);
-                    ItemStack displayStack = neighborState.getBlock().getCloneItemStack(world, neighbor, neighborState);
-                    if (displayStack.isEmpty()) {
-                        displayStack = new ItemStack(neighborState.getBlock());
-                    }
-                    blocks.put(dir, displayStack);
-                    containerNames.put(dir, te instanceof net.minecraft.world.Nameable nameable
-                            ? nameable.getDisplayName() : Component.translatable(neighborState.getBlock().getDescriptionId()));
-                }
+                BlockEntity te = world.getBlockEntity(pos.relative(dir));
+                if (te != null) addSideInventory(dir, te);
             }
+            return;
         }
+        for (Direction dir : findSideHandlers(world, pos, player).keySet()) {
+            addSideInventory(dir, world.getBlockEntity(pos.relative(dir)));
+        }
+    }
+
+    private void addSideInventory(Direction dir, BlockEntity te) {
+        BlockPos neighbor = te.getBlockPos();
+        BlockState neighborState = world.getBlockState(neighbor);
+        ItemStack displayStack = neighborState.getBlock().getCloneItemStack(world, neighbor, neighborState);
+        if (displayStack.isEmpty()) {
+            displayStack = new ItemStack(neighborState.getBlock());
+        }
+        blockEntityMap.put(dir, te);
+        blocks.put(dir, displayStack);
+        containerNames.put(dir, te instanceof Nameable nameable
+                ? nameable.getDisplayName() : Component.translatable(neighborState.getBlock().getDescriptionId()));
     }
 
     private void addSideInventorySlots() {
@@ -433,18 +417,26 @@ public class CraftingStationMenu extends AbstractContainerMenu {
 
     @Override
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
-        if (clickType == ClickType.SWAP && slotId >= 0 && slotId < slots.size()
+        if (clickType == ClickType.SWAP && (button >= 0 && button < 9 || button == 40)
+                && slotId >= 0 && slotId < slots.size()
                 && slots.get(slotId) instanceof SideContainerSlot sideSlot) {
-            ItemStack slotStack = sideSlot.getItem();
-            if (slotStack.getCount() > slotStack.getMaxStackSize()) {
-                Inventory inventory = player.getInventory();
-                if (inventory.getItem(button).isEmpty()) {
-                    inventory.setItem(button, sideSlot.safeTake(slotStack.getMaxStackSize(), Integer.MAX_VALUE, player));
-                }
-                return;
-            }
+            swapWithSideSlot(sideSlot, button, player);
+            return;
         }
         super.clicked(slotId, button, clickType, player);
+    }
+
+    private void swapWithSideSlot(SideContainerSlot sideSlot, int button, Player player) {
+        Inventory inventory = player.getInventory();
+        ItemStack source = inventory.getItem(button);
+        ItemStack target = sideSlot.getItem();
+        if (source.isEmpty()) {
+            if (!target.isEmpty()) {
+                inventory.setItem(button, sideSlot.safeTake(Math.min(target.getCount(), target.getMaxStackSize()), Integer.MAX_VALUE, player));
+            }
+        } else if (target.isEmpty()) {
+            inventory.setItem(button, sideSlot.safeInsert(source));
+        }
     }
 
     @Override
@@ -711,6 +703,14 @@ public class CraftingStationMenu extends AbstractContainerMenu {
             ItemStack result = handler.removeStack(slotIndex, Math.min(amount, existing.getMaxStackSize()));
             craftingStationMenu.flushAdjacentUpdate(direction);
             return result;
+        }
+
+        @Override
+        public boolean mayPickup(Player player) {
+            if (craftingStationMenu.world.isClientSide) return true;
+            SideContainerWrapper handler = getHandler();
+            if (!craftingStationMenu.isValidSideSlot(handler, slotIndex)) return false;
+            return handler.getStack(slotIndex).isEmpty() || handler.canExtract(slotIndex);
         }
 
         @Override

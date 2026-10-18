@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.leclowndu93150"
-version = "2.2.0"
+version = "2.2.1"
 
 prism {
     metadata {
@@ -21,12 +21,12 @@ prism {
     publishing {
         type = STABLE
         changelog = """
-            - Added EMI support on 1.20.1 and 1.21.1
-            - Fixed a crash to the main menu on 1.21.1 when moving items into a chest next to the station.
-            - Fixed the side inventory using the creative inventory textures. The slots and scrollbar now use the mod's own texture and can be resource packed independently.
-            - Fixed scrollbar dragging being offset, grabbing on clicks anywhere in the screen, and leaving the grid misaligned. Scrolling now moves in whole rows.
-            - Fixed item loss and apparent duplication with over-stacked slots such as Sophisticated Storage barrels with a Stack Upgrade. The real count is now shown and taking, swapping, and dragging no longer discard the surplus.
-            - Fixed a duplication on 26.1 when shift-clicking from an adjacent container into a nearly full inventory.
+            - Added support for 26.2 and 26.3. The 26.1 version now targets 26.1.2.
+            - Fixed items being voided on 26.1 when JEI or a click put items into an adjacent container that doesn't accept all of them.
+            - Fixed a server freeze when using JEI max transfer with an adjacent container that shows items but doesn't allow taking them out.
+            - Fixed modded chests, such as Every Compat's Woodworks chests, not being detected as adjacent inventories on 1.21.1 and 26.1.
+            - Fixed disconnects on 26.1 when the client and server disagreed on adjacent inventories, for example next to multiblocks like the Atomic Forge. Adjacent inventory sync is also stricter on all versions.
+            - Fixed item loss and duplication when using number keys to swap items with an adjacent container slot.
         """.trimIndent()
 
         curseforge {
@@ -98,15 +98,38 @@ prism {
         }
     }
 
-    version("26.1.1") {
-        minecraftVersions("26.1","26.1.1","26.1.2")
+    version("26.1.2") {
         neoforge {
-            loaderVersion = "26.1.1.10-beta"
+            loaderVersion = "26.1.2.122"
             loaderVersionRange = "[4,)"
             dependencies {
-                implementation("curse.maven:jei-238222:7884734")
-                implementation("curse.maven:balm-531761:7842250")
-                implementation("curse.maven:crafting-tweaks-233071:7806683")
+                implementation("curse.maven:jei-238222:9205181")
+                implementation("curse.maven:balm-531761:8969765")
+                implementation("curse.maven:crafting-tweaks-233071:8697035")
+            }
+        }
+    }
+
+    version("26.2") {
+        neoforge {
+            loaderVersion = "26.2.0.93"
+            loaderVersionRange = "[4,)"
+            dependencies {
+                implementation("curse.maven:jei-238222:9205166")
+                implementation("curse.maven:balm-531761:8969714")
+                implementation("curse.maven:crafting-tweaks-233071:8697034")
+            }
+        }
+    }
+
+    version("26.3") {
+        neoforge {
+            loaderVersion = "26.3.0.90"
+            loaderVersionRange = "[4,)"
+            dependencies {
+                implementation("curse.maven:jei-238222:9235396")
+                implementation("curse.maven:balm-531761:9035246")
+                implementation("curse.maven:crafting-tweaks-233071:8893528")
             }
         }
     }

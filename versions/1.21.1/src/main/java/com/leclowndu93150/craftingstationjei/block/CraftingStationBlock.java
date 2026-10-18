@@ -72,7 +72,7 @@ public class CraftingStationBlock extends BaseEntityBlock {
             if (be instanceof CraftingStationBlockEntity csbe) {
                 serverPlayer.openMenu(csbe, buf -> {
                     buf.writeBlockPos(pos);
-                    CraftingStationMenu.writeSideSlotCounts(buf, level, pos);
+                    CraftingStationMenu.writeSideSlotCounts(buf, level, pos, serverPlayer);
                 });
             }
         }
